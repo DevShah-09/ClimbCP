@@ -61,8 +61,8 @@
 
 ## Phase 8: Frontend
 
-- [ ] Dashboard
-- [ ] Rating Graphs
-- [ ] Topic Radar Chart
-- [ ] Weakness Dashboard
-- [ ] Recommendations Page
+- [x] Dashboard
+- [x] Rating Graphs
+- [x] Topic Radar Chart
+- [x]  Weakness Dashboard
+- [x] Recommendations Page
