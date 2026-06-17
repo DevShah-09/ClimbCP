@@ -22,6 +22,13 @@ from app.schemas.topic import (
     StrengthResponse,
     TopicSummaryResponse,
 )
+from app.schemas.ai import (
+    ContestReviewRequest,
+    ContestReviewResponse,
+    RatingLossResponse,
+    BottleneckItem,
+    BottleneckAnalysis,
+)
 
 __all__ = [
     "SyncResponse",
@@ -42,4 +49,9 @@ __all__ = [
     "StrengthItem",
     "StrengthResponse",
     "TopicSummaryResponse",
+    "ContestReviewRequest",
+    "ContestReviewResponse",
+    "RatingLossResponse",
+    "BottleneckItem",
+    "BottleneckAnalysis",
 ]

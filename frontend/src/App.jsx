@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import TopicAnalytics from './pages/TopicAnalytics';
 import WeaknessAnalysis from './pages/WeaknessAnalysis';
 import Recommendations from './pages/Recommendations';
+import AiCoach from './pages/AiCoach';
 import Login from './pages/Login';
 import { LoadingSpinner } from './components/UIStates';
 
@@ -30,6 +31,7 @@ function AppContent() {
         <Route path="/topics" element={<TopicAnalytics />} />
         <Route path="/weaknesses" element={<WeaknessAnalysis />} />
         <Route path="/recommendations" element={<Recommendations />} />
+        <Route path="/ai-coach" element={<AiCoach />} />
       </Route>
     </Routes>
   );

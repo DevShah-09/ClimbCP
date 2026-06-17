@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, AlertTriangle, Lightbulb, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, BookOpen, AlertTriangle, Lightbulb, TrendingUp, Sparkles } from 'lucide-react';
 import { useAnalytics } from '../hooks/AnalyticsContext';
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/topics',        icon: BookOpen,         label: 'Topic Analytics' },
   { to: '/weaknesses',    icon: AlertTriangle,    label: 'Weakness Analysis' },
   { to: '/recommendations', icon: Lightbulb,      label: 'Recommendations' },
+  { to: '/ai-coach',      icon: Sparkles,         label: 'AI Coach' },
 ];
 
 export default function Sidebar() {
@@ -60,10 +61,7 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* Bottom label */}
-      <div className="px-5 py-3 border-t border-border">
-        <p className="text-xs text-text-muted">Phase 1 · Analytics</p>
-      </div>
+
     </aside>
   );
 }

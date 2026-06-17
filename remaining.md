@@ -40,9 +40,9 @@
 
 ## Phase 4: AI Features
 
-- [ ] AI Contest Review
-- [ ] Rating Loss Explanation Engine
-- [ ] Performance Bottleneck Analysis
+- [x] AI Contest Review
+- [x] Rating Loss Explanation Engine
+- [x] Performance Bottleneck Analysis
 
 ---
 
@@ -77,4 +77,5 @@
 - [x] Topic Radar Chart
 - [x] Weakness Dashboard
 - [x] Recommendations Page
+- [x] AI Coach Page
 - [x] Login / Registration UI

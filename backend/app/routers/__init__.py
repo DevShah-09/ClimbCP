@@ -4,6 +4,7 @@ from app.routers.analytics import ratings_router
 from app.routers.auth import router as auth_router
 from app.routers.topics import topics_router, weaknesses_router, strengths_router
 from app.routers.recommendations import recommendations_router
+from app.routers.ai import ai_router
 
 __all__ = [
     "sync_router",
@@ -14,4 +15,5 @@ __all__ = [
     "weaknesses_router",
     "strengths_router",
     "recommendations_router",
+    "ai_router",
 ]

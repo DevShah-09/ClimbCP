@@ -52,6 +52,19 @@ class AIReport(Base):
         Text
     )
 
+    # Full JSON blob returned by the LLM (serialised as text)
+    generated_text: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
+    # Unique cache key: "<report_type>:<user_id>:<contest_code|none>"
+    cache_key: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        index=True
+    )
+
     report_type: Mapped[str] = mapped_column(
         String(50),
         default="contest_review"

@@ -63,5 +63,14 @@ export const analyticsApi = {
     api.get(`/recommendations/${handle}`, { params: { limit } }).then(r => r.data.recommendations ?? []),
 };
 
+export const aiApi = {
+  getContestReview: (handle, contestId) => 
+    api.post('/ai/contest-review', { handle, contest_id: contestId }).then(r => r.data),
+  getRatingLoss: (handle) => 
+    api.get(`/ai/rating-loss/${handle}`).then(r => r.data),
+  getBottlenecks: (handle) => 
+    api.get(`/ai/bottlenecks/${handle}`).then(r => r.data),
+};
+
 export default api;
 
