@@ -1,6 +1,16 @@
 # ClimbCP Remaining Roadmap
 
 
+## Phase 0: Auth & Onboarding
+
+- [x] User Registration (with Codeforces handle validation)
+- [x] User Login (JWT-based)
+- [x] Session Persistence (token-based auto-restore)
+- [x] Initial Codeforces Sync on Registration
+- [x] Protected API Routes (auth middleware)
+
+---
+
 ## Phase 1: Analytics Foundation
 
 - [x] User Analytics API
@@ -12,10 +22,11 @@
 
 ## Phase 2: Topic Intelligence
 
-- [ ] Topic Analytics Engine
-- [ ] Topic Mastery Scoring
-- [ ] Weakness Detection Engine
-- [ ] Strength Detection Engine
+- [x] Topic Analytics Engine (`GET /topics/{handle}`)
+- [x] Topic Mastery Scoring (`GET /topics/{handle}/mastery`)
+- [x] Topic Summary (`GET /topics/{handle}/summary`)
+- [x] Weakness Detection Engine (`GET /weaknesses/{handle}`)
+- [x] Strength Detection Engine (`GET /strengths/{handle}`)
 
 ---
 
@@ -64,5 +75,6 @@
 - [x] Dashboard
 - [x] Rating Graphs
 - [x] Topic Radar Chart
-- [x]  Weakness Dashboard
+- [x] Weakness Dashboard
 - [x] Recommendations Page
+- [x] Login / Registration UI

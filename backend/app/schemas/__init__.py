@@ -11,6 +11,17 @@ from app.schemas.user import (
     UserResponse,
     TokenResponse
 )
+from app.schemas.topic import (
+    TopicAnalyticsItem,
+    TopicAnalyticsResponse,
+    TopicMasteryItem,
+    TopicMasteryResponse,
+    WeaknessItem,
+    WeaknessResponse,
+    StrengthItem,
+    StrengthResponse,
+    TopicSummaryResponse,
+)
 
 __all__ = [
     "SyncResponse",
@@ -21,5 +32,14 @@ __all__ = [
     "UserRegister",
     "UserLogin",
     "UserResponse",
-    "TokenResponse"
+    "TokenResponse",
+    "TopicAnalyticsItem",
+    "TopicAnalyticsResponse",
+    "TopicMasteryItem",
+    "TopicMasteryResponse",
+    "WeaknessItem",
+    "WeaknessResponse",
+    "StrengthItem",
+    "StrengthResponse",
+    "TopicSummaryResponse",
 ]

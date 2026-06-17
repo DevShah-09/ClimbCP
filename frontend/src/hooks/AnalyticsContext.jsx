@@ -13,6 +13,7 @@ export function AnalyticsProvider({ children }) {
   const [activityStats, setActivityStats] = useState(null);
   const [topicData, setTopicData] = useState(null);
   const [weaknesses, setWeaknesses] = useState(null);
+  const [strengths, setStrengths] = useState(null);
   const [recommendations, setRecommendations] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -25,13 +26,14 @@ export function AnalyticsProvider({ children }) {
     const h = searchHandle.trim();
 
     try {
-      const [userAnalytics, ratings, contests, activity, topics, weak, recs] = await Promise.allSettled([
+      const [userAnalytics, ratings, contests, activity, topics, weak, strengths, recs] = await Promise.allSettled([
         analyticsApi.getUserAnalytics(h),
         analyticsApi.getRatingHistory(h),
         analyticsApi.getContestStats(h),
         analyticsApi.getActivityStats(h),
         analyticsApi.getTopicAnalytics(h),
         analyticsApi.getWeaknesses(h),
+        analyticsApi.getStrengths(h),
         analyticsApi.getRecommendations(h),
       ]);
 
@@ -46,7 +48,8 @@ export function AnalyticsProvider({ children }) {
       setContestStats(contests.status === 'fulfilled' ? contests.value : null);
       setActivityStats(activity.status === 'fulfilled' ? activity.value : null);
       setTopicData(topics.status === 'fulfilled' ? topics.value : null);
-      setWeaknesses(weak.status === 'fulfilled' ? weaknesses.value : null);
+      setWeaknesses(weak.status === 'fulfilled' ? weak.value : null);
+      setStrengths(strengths.status === 'fulfilled' ? strengths.value : null);
       setRecommendations(recs.status === 'fulfilled' ? recs.value : null);
       
       setHandle(h);
@@ -110,6 +113,7 @@ export function AnalyticsProvider({ children }) {
     setActivityStats(null);
     setTopicData(null);
     setWeaknesses(null);
+    setStrengths(null);
     setRecommendations(null);
     setError(null);
     localStorage.removeItem('climbcp_handle');
@@ -141,7 +145,7 @@ export function AnalyticsProvider({ children }) {
   return (
     <AnalyticsContext.Provider value={{
       user, token, handle, analytics, ratingHistory, contestStats, activityStats,
-      topicData, weaknesses, recommendations, loading, error, initialized,
+      topicData, weaknesses, strengths, recommendations, loading, error, initialized,
       fetchAllData, clearData, login, register
     }}>
       {children}
