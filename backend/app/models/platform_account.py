@@ -1,11 +1,8 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String
-from sqlalchemy import ForeignKey
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
+from sqlalchemy import String, ForeignKey
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from app.database.base import Base
 
@@ -13,8 +10,8 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
-class CPProfile(Base):
-    __tablename__ = "cp_profiles"
+class PlatformAccount(Base):
+    __tablename__ = "platform_accounts"
 
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True,
@@ -33,9 +30,9 @@ class CPProfile(Base):
         String(100)
     )
 
-    current_rating: Mapped[int | None] = mapped_column()
+    current_rating: Mapped[int | None] = mapped_column(nullable=True)
 
-    max_rating: Mapped[int | None] = mapped_column()
+    max_rating: Mapped[int | None] = mapped_column(nullable=True)
 
     # Relationships
-    user: Mapped["User"] = relationship(back_populates="cp_profiles")
+    user: Mapped["User"] = relationship(back_populates="platform_accounts")

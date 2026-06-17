@@ -10,12 +10,18 @@ from app.schemas.analytics import (
     ActivityStatisticsResponse
 )
 from app.services import analytics_service
+from app.core.security import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 
 @router.get("/{handle}", response_model=UserAnalyticsResponse)
-def get_user_analytics(handle: str, db: Session = Depends(get_db)):
+def get_user_analytics(
+    handle: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         return analytics_service.get_user_analytics(db, handle)
     except ValueError as e:
@@ -31,7 +37,11 @@ def get_user_analytics(handle: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{handle}/contests", response_model=ContestStatisticsResponse)
-def get_contest_statistics(handle: str, db: Session = Depends(get_db)):
+def get_contest_statistics(
+    handle: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         return analytics_service.get_contest_statistics(db, handle)
     except ValueError as e:
@@ -47,7 +57,11 @@ def get_contest_statistics(handle: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{handle}/activity", response_model=ActivityStatisticsResponse)
-def get_activity_statistics(handle: str, db: Session = Depends(get_db)):
+def get_activity_statistics(
+    handle: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         return analytics_service.get_activity_statistics(db, handle)
     except ValueError as e:
@@ -69,7 +83,11 @@ def get_activity_statistics(handle: str, db: Session = Depends(get_db)):
 ratings_router = APIRouter(prefix="/ratings", tags=["analytics"])
 
 @ratings_router.get("/{handle}", response_model=List[RatingHistoryItem])
-def get_rating_history(handle: str, db: Session = Depends(get_db)):
+def get_rating_history(
+    handle: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         return analytics_service.get_rating_history(db, handle)
     except ValueError as e:

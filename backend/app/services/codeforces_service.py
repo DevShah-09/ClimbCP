@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.models.user import User
-from app.models.cp_profile import CPProfile
+from app.models.platform_account import PlatformAccount
 from app.models.contest import Contest
 from app.models.contest_participation import ContestParticipation
 from app.models.problem import Problem
@@ -208,9 +208,9 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
         logger.info(f"User fetched from Codeforces: {official_handle}")
 
         # Step 3: Create or update the user record
-        profile = db.query(CPProfile).filter(
-            CPProfile.platform == "codeforces",
-            func.lower(CPProfile.handle) == handle.lower()
+        profile = db.query(PlatformAccount).filter(
+            PlatformAccount.platform == "codeforces",
+            func.lower(PlatformAccount.handle) == handle.lower()
         ).first()
 
         if profile:
@@ -219,6 +219,7 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
             profile.handle = official_handle
             profile.current_rating = cf_profile_info.get("rating")
             profile.max_rating = cf_profile_info.get("maxRating")
+            user.codeforces_handle = official_handle
         else:
             # Check if User with username already exists (case-insensitive)
             user = db.query(User).filter(func.lower(User.username) == handle.lower()).first()
@@ -232,13 +233,14 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
                 user = User(
                     username=official_handle,
                     email=email,
-                    hashed_password="pbkdf2:sha256:dummy_password_for_synced_user"
+                    password_hash="pbkdf2:sha256:dummy_password_for_synced_user",
+                    codeforces_handle=official_handle
                 )
                 db.add(user)
                 db.flush()  # to populate user.id
 
-            # Create CPProfile
-            profile = CPProfile(
+            # Create PlatformAccount
+            profile = PlatformAccount(
                 user_id=user.id,
                 platform="codeforces",
                 handle=official_handle,

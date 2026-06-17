@@ -10,6 +10,20 @@ const api = axios.create({
   },
 });
 
+// Request interceptor to attach bearer token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('climbcp_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -23,6 +37,12 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const authApi = {
+  register: (data) => api.post('/auth/register', data).then(r => r.data),
+  login: (data) => api.post('/auth/login', data).then(r => r.data),
+  getMe: () => api.get('/auth/me').then(r => r.data),
+};
 
 export const analyticsApi = {
   getUserAnalytics: (handle) => api.get(`/analytics/${handle}`).then(r => r.data),

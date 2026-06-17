@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { analyticsApi } from '../services/api';
+import { analyticsApi, authApi } from '../services/api';
 
 const AnalyticsContext = createContext(null);
 
 export function AnalyticsProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [handle, setHandle] = useState('');
   const [analytics, setAnalytics] = useState(null);
   const [ratingHistory, setRatingHistory] = useState(null);
@@ -44,7 +46,7 @@ export function AnalyticsProvider({ children }) {
       setContestStats(contests.status === 'fulfilled' ? contests.value : null);
       setActivityStats(activity.status === 'fulfilled' ? activity.value : null);
       setTopicData(topics.status === 'fulfilled' ? topics.value : null);
-      setWeaknesses(weak.status === 'fulfilled' ? weak.value : null);
+      setWeaknesses(weak.status === 'fulfilled' ? weaknesses.value : null);
       setRecommendations(recs.status === 'fulfilled' ? recs.value : null);
       
       setHandle(h);
@@ -58,8 +60,50 @@ export function AnalyticsProvider({ children }) {
     }
   }, []);
 
+  const login = useCallback(async (username, password) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await authApi.login({ username, password });
+      setToken(res.access_token);
+      setUser(res.user);
+      setHandle(res.user.codeforces_handle);
+      localStorage.setItem('climbcp_token', res.access_token);
+      localStorage.setItem('climbcp_handle', res.user.codeforces_handle);
+      
+      // Load analytics data
+      await fetchAllData(res.user.codeforces_handle);
+      return true;
+    } catch (err) {
+      setError(err.message || 'Login failed');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchAllData]);
+
+  const register = useCallback(async (username, email, codeforces_handle, password) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Register the user & trigger initial sync in backend
+      await authApi.register({ username, email, codeforces_handle, password });
+      
+      // Auto login
+      const success = await login(username, password);
+      return success;
+    } catch (err) {
+      setError(err.message || 'Registration failed');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [login]);
+
   const clearData = useCallback(() => {
     setHandle('');
+    setUser(null);
+    setToken(null);
     setAnalytics(null);
     setRatingHistory(null);
     setContestStats(null);
@@ -69,23 +113,36 @@ export function AnalyticsProvider({ children }) {
     setRecommendations(null);
     setError(null);
     localStorage.removeItem('climbcp_handle');
+    localStorage.removeItem('climbcp_token');
   }, []);
 
   // Auto-login on mount
   useEffect(() => {
-    const savedHandle = localStorage.getItem('climbcp_handle');
-    if (savedHandle) {
-      fetchAllData(savedHandle).finally(() => setInitialized(true));
-    } else {
+    const savedToken = localStorage.getItem('climbcp_token');
+    const loadSession = async () => {
+      if (savedToken) {
+        setToken(savedToken);
+        try {
+          const me = await authApi.getMe();
+          setUser(me);
+          setHandle(me.codeforces_handle);
+          localStorage.setItem('climbcp_handle', me.codeforces_handle);
+          await fetchAllData(me.codeforces_handle);
+        } catch (err) {
+          console.error("Session load failed, clearing tokens:", err);
+          clearData();
+        }
+      }
       setInitialized(true);
-    }
-  }, [fetchAllData]);
+    };
+    loadSession();
+  }, [fetchAllData, clearData]);
 
   return (
     <AnalyticsContext.Provider value={{
-      handle, analytics, ratingHistory, contestStats, activityStats,
+      user, token, handle, analytics, ratingHistory, contestStats, activityStats,
       topicData, weaknesses, recommendations, loading, error, initialized,
-      fetchAllData, clearData,
+      fetchAllData, clearData, login, register
     }}>
       {children}
     </AnalyticsContext.Provider>
@@ -97,4 +154,3 @@ export function useAnalytics() {
   if (!ctx) throw new Error('useAnalytics must be used within AnalyticsProvider');
   return ctx;
 }
-

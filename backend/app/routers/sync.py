@@ -9,11 +9,17 @@ from app.services.codeforces_service import (
     CodeforcesTimeoutException,
     CodeforcesException
 )
+from app.core.security import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
 @router.post("/codeforces/{handle}", response_model=SyncResponse)
-def sync_codeforces(handle: str, db: Session = Depends(get_db)):
+def sync_codeforces(
+    handle: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """
     Triggers database synchronization for a user's Codeforces profile,
     rating history, and submissions.

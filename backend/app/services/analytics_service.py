@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.models.cp_profile import CPProfile
+from app.models.platform_account import PlatformAccount
 from app.models.contest_participation import ContestParticipation
 from app.models.contest import Contest
 from app.models.problem_attempt import ProblemAttempt
@@ -16,7 +16,7 @@ from app.schemas.analytics import (
 
 
 def get_user_analytics(db: Session, handle: str) -> UserAnalyticsResponse:
-    profile = db.query(CPProfile).filter(func.lower(CPProfile.handle) == handle.lower()).first()
+    profile = db.query(PlatformAccount).filter(func.lower(PlatformAccount.handle) == handle.lower()).first()
     if not profile:
         raise ValueError(f"User with handle {handle} not found")
 
@@ -56,7 +56,7 @@ def get_user_analytics(db: Session, handle: str) -> UserAnalyticsResponse:
 
 
 def get_rating_history(db: Session, handle: str) -> List[RatingHistoryItem]:
-    profile = db.query(CPProfile).filter(func.lower(CPProfile.handle) == handle.lower()).first()
+    profile = db.query(PlatformAccount).filter(func.lower(PlatformAccount.handle) == handle.lower()).first()
     if not profile:
         raise ValueError(f"User with handle {handle} not found")
 
@@ -80,7 +80,7 @@ def get_rating_history(db: Session, handle: str) -> List[RatingHistoryItem]:
 
 
 def get_contest_statistics(db: Session, handle: str) -> ContestStatisticsResponse:
-    profile = db.query(CPProfile).filter(func.lower(CPProfile.handle) == handle.lower()).first()
+    profile = db.query(PlatformAccount).filter(func.lower(PlatformAccount.handle) == handle.lower()).first()
     if not profile:
         raise ValueError(f"User with handle {handle} not found")
 
@@ -131,7 +131,7 @@ def get_contest_statistics(db: Session, handle: str) -> ContestStatisticsRespons
 
 
 def get_activity_statistics(db: Session, handle: str) -> ActivityStatisticsResponse:
-    profile = db.query(CPProfile).filter(func.lower(CPProfile.handle) == handle.lower()).first()
+    profile = db.query(PlatformAccount).filter(func.lower(PlatformAccount.handle) == handle.lower()).first()
     if not profile:
         raise ValueError(f"User with handle {handle} not found")
 

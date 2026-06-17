@@ -5,11 +5,21 @@ from app.schemas.analytics import (
     ContestStatisticsResponse,
     ActivityStatisticsResponse
 )
+from app.schemas.user import (
+    UserRegister,
+    UserLogin,
+    UserResponse,
+    TokenResponse
+)
 
 __all__ = [
     "SyncResponse",
     "UserAnalyticsResponse",
     "RatingHistoryItem",
     "ContestStatisticsResponse",
-    "ActivityStatisticsResponse"
+    "ActivityStatisticsResponse",
+    "UserRegister",
+    "UserLogin",
+    "UserResponse",
+    "TokenResponse"
 ]
