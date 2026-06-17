@@ -32,9 +32,9 @@
 
 ## Phase 3: Recommendations
 
-- [ ] Problem Recommendation Engine V1
-- [ ] Personalized Practice Set Generator
-- [ ] Learning Roadmap Generator
+- [x] Problem Recommendation Engine V1 (`GET /recommendations/{handle}`)
+- [x] Personalized Practice Set Generator (`GET /practice-set/{handle}`)
+- [x] Learning Roadmap Generator (`GET /roadmap/{handle}`)
 
 ---
 

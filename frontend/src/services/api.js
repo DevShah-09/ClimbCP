@@ -58,20 +58,10 @@ export const analyticsApi = {
   getStrengths: (handle) =>
     api.get(`/strengths/${handle}`).then(r => r.data.strengths ?? []),
 
-  // Phase 3 — still mocked
-  getRecommendations: (handle) =>
-    api.get(`/recommendations/${handle}`).then(r => r.data).catch(() => MOCK_RECOMMENDATIONS),
+  // Phase 3 — live backend endpoint (limit: 1–30)
+  getRecommendations: (handle, limit = 10) =>
+    api.get(`/recommendations/${handle}`, { params: { limit } }).then(r => r.data.recommendations ?? []),
 };
-
-// ── Phase 3 mock (recommendations not yet implemented) ───────────────────────
-const MOCK_RECOMMENDATIONS = [
-  { problem_name: "Dijkstra's Shortest Path", rating: 1700, topics: ['Graphs', 'Shortest Paths'], reason: 'Targets your graph weakness.', difficulty: 'Medium' },
-  { problem_name: 'KMP String Matching', rating: 1900, topics: ['String Algorithms'], reason: "High-value string problem you haven't attempted.", difficulty: 'Hard' },
-  { problem_name: 'Tree DP Classic', rating: 1600, topics: ['Trees', 'Dynamic Programming'], reason: 'Combines your two weaker areas.', difficulty: 'Medium' },
-  { problem_name: 'Segment Tree Beats', rating: 2200, topics: ['Data Structures'], reason: 'Next-level challenge for your skill range.', difficulty: 'Expert' },
-  { problem_name: 'Greedy Scheduling', rating: 1400, topics: ['Greedy Algorithms'], reason: 'Builds on your strongest topic.', difficulty: 'Easy' },
-  { problem_name: 'Binary Search on Answer', rating: 1800, topics: ['Binary Search'], reason: 'Solidify a key pattern for contests.', difficulty: 'Medium' },
-];
 
 export default api;
 
