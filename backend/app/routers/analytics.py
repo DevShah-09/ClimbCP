@@ -10,7 +10,7 @@ from app.schemas.analytics import (
     ActivityStatisticsResponse
 )
 from app.services import analytics_service
-from app.core.security import get_current_user
+from app.core.security import get_current_user, verify_handle_ownership
 from app.models.user import User
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -22,6 +22,7 @@ def get_user_analytics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    verify_handle_ownership(handle, current_user)
     try:
         return analytics_service.get_user_analytics(db, handle)
     except ValueError as e:
@@ -42,6 +43,7 @@ def get_contest_statistics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    verify_handle_ownership(handle, current_user)
     try:
         return analytics_service.get_contest_statistics(db, handle)
     except ValueError as e:
@@ -62,6 +64,7 @@ def get_activity_statistics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    verify_handle_ownership(handle, current_user)
     try:
         return analytics_service.get_activity_statistics(db, handle)
     except ValueError as e:
@@ -88,6 +91,7 @@ def get_rating_history(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    verify_handle_ownership(handle, current_user)
     try:
         return analytics_service.get_rating_history(db, handle)
     except ValueError as e:

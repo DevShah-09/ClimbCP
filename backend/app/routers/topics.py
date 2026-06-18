@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, verify_handle_ownership
 from app.models.user import User
 from app.schemas.topic import (
     TopicAnalyticsResponse,
@@ -30,6 +30,7 @@ def get_topic_analytics(
     current_user: User = Depends(get_current_user),
 ):
     """Return per-topic attempt/solve counts and accuracy for a given handle."""
+    verify_handle_ownership(handle, current_user)
     try:
         return topic_service.get_topic_analytics(db, handle)
     except ValueError as e:
@@ -49,6 +50,7 @@ def get_topic_mastery(
     current_user: User = Depends(get_current_user),
 ):
     """Return mastery score (0–100) and level for every topic."""
+    verify_handle_ownership(handle, current_user)
     try:
         return topic_service.calculate_topic_mastery(db, handle)
     except ValueError as e:
@@ -68,6 +70,7 @@ def get_topic_summary(
     current_user: User = Depends(get_current_user),
 ):
     """Return aggregate mastery summary statistics."""
+    verify_handle_ownership(handle, current_user)
     try:
         return topic_service.get_topic_summary(db, handle)
     except ValueError as e:
@@ -89,6 +92,7 @@ def get_weaknesses(
     current_user: User = Depends(get_current_user),
 ):
     """Return topics ordered by mastery score ascending with priority tags."""
+    verify_handle_ownership(handle, current_user)
     try:
         return topic_service.get_weaknesses(db, handle)
     except ValueError as e:
@@ -110,6 +114,7 @@ def get_strengths(
     current_user: User = Depends(get_current_user),
 ):
     """Return topics with mastery score >= 75, ordered descending."""
+    verify_handle_ownership(handle, current_user)
     try:
         return topic_service.get_strengths(db, handle)
     except ValueError as e:

@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, verify_handle_ownership
 from app.models.user import User
 from app.schemas.recommendation import (
     ProblemRecommendationResponse,
@@ -50,6 +50,7 @@ def get_recommendations(
     Priority formula:
       50% topic weakness weight + 35% difficulty match + 15% popularity
     """
+    verify_handle_ownership(handle, current_user)
     try:
         return recommendation_service.get_problem_recommendations(db, handle, limit=limit)
     except ValueError as e:
@@ -84,6 +85,7 @@ def get_practice_set(
 
     Metadata includes estimated completion time and primary focus topics.
     """
+    verify_handle_ownership(handle, current_user)
     try:
         return recommendation_service.generate_practice_set(db, handle)
     except ValueError as e:
@@ -120,6 +122,7 @@ def get_roadmap(
     Week 3: Combined practice
     Week 4: Virtual contest training
     """
+    verify_handle_ownership(handle, current_user)
     try:
         return recommendation_service.generate_learning_roadmap(db, handle)
     except ValueError as e:

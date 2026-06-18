@@ -129,3 +129,17 @@ def get_current_user(
             detail="User is inactive"
         )
     return user
+
+
+def verify_handle_ownership(handle: str, current_user: User) -> None:
+    """
+    Verifies that the requested competitive programming handle matches
+    the authenticated user's registered Codeforces handle (case-insensitive).
+    Raises HTTPException 403 Forbidden if they do not match.
+    """
+    if not current_user.codeforces_handle or handle.lower() != current_user.codeforces_handle.lower():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: You do not have permission to access data for this competitive programming handle."
+        )
+

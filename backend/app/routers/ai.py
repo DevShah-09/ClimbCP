@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, verify_handle_ownership
 from app.core.rate_limit import ai_rate_limit
 from app.models.user import User
 from app.schemas.ai import (
@@ -52,6 +52,7 @@ def post_contest_review(
     The report references real contest data: rank, rating change, problems attempted,
     topic mastery scores, and submission patterns.
     """
+    verify_handle_ownership(request.handle, current_user)
     logger.info(
         f"AI contest review requested: handle={request.handle}, contest_id={request.contest_id} "
         f"by user={current_user.username}"
@@ -110,6 +111,7 @@ def get_rating_loss_explanation(
     Uses the last 10 contests, topic mastery scores, and activity statistics
     to identify root causes and provide targeted recommendations.
     """
+    verify_handle_ownership(handle, current_user)
     logger.info(
         f"AI rating loss explanation requested: handle={handle} "
         f"by user={current_user.username}"
@@ -165,6 +167,7 @@ def get_bottleneck_analysis(
     Implementation Errors, Low Contest Frequency, Slow Solving Speed, and
     Poor Upsolving Habits.
     """
+    verify_handle_ownership(handle, current_user)
     logger.info(
         f"AI bottleneck analysis requested: handle={handle} "
         f"by user={current_user.username}"
