@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from app.models.topic import Topic
     from app.models.problem_attempt import ProblemAttempt
     from app.models.recommendation import Recommendation
+    from app.models.problem_embedding import ProblemEmbedding
+    from app.models.problem_cluster import ProblemCluster
 
 
 class Problem(Base):
@@ -49,5 +51,15 @@ class Problem(Base):
     )
     recommendations: Mapped[list["Recommendation"]] = relationship(
         back_populates="problem",
+        cascade="all, delete-orphan"
+    )
+    embedding_rel: Mapped["ProblemEmbedding"] = relationship(
+        back_populates="problem",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+    cluster_rel: Mapped["ProblemCluster"] = relationship(
+        back_populates="problem",
+        uselist=False,
         cascade="all, delete-orphan"
     )

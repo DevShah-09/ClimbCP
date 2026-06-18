@@ -39,6 +39,8 @@ from app.schemas.recommendation import (
     RoadmapTask,
     RoadmapWeek,
     RoadmapResponse,
+    RecommendedProblemV2,
+    ProblemRecommendationResponseV2,
 )
 from app.services.topic_service import calculate_topic_mastery, _resolve_user_id
 from app.services import cf_problemset_service
@@ -818,3 +820,129 @@ def generate_learning_roadmap(db: Session, handle: str) -> RoadmapResponse:
         total_weeks=4,
         focus_summary=focus_summary,
     )
+
+
+# ── Feature 5: V2 Problem Recommendations (Embedding-Based) ─────────────────
+
+def get_recommendations_v2(
+    db: Session,
+    handle: str,
+    limit: int = 10,
+) -> ProblemRecommendationResponseV2:
+    """
+    Generate embedding-based recommendations for a user.
+    Looks at unsolved problems they struggled with recently, and recommends
+    semantically similar problems using vector search.
+    """
+    from app.services.problem_embedding_service import find_similar_problems
+    from app.schemas.recommendation import ProblemRecommendationResponseV2, RecommendedProblemV2
+    import uuid
+
+    profile = _get_user_profile(db, handle)
+    user_id = profile.user_id
+
+    # 1. Fetch user's failed attempts (attempted > 0, solved == False)
+    failed_attempts = (
+        db.query(ProblemAttempt, Problem)
+        .join(Problem, Problem.id == ProblemAttempt.problem_id)
+        .filter(
+            ProblemAttempt.user_id == user_id,
+            ProblemAttempt.solved == False,
+            ProblemAttempt.attempts > 0
+        )
+        .order_by(ProblemAttempt.attempts.desc())
+        .all()
+    )
+
+    # Fetch set of solved/attempted problem IDs to exclude
+    solved_ids = _get_solved_problem_ids(db, user_id)
+    
+    recommendations = []
+    recommended_ids = set()
+
+    # 2. Loop over failed problems and find similar problems
+    for attempt, prob in failed_attempts:
+        if len(recommendations) >= limit:
+            break
+        try:
+            # Get similar problems
+            similar = find_similar_problems(db, attempt.problem_id, limit=limit)
+            
+            for sim in similar:
+                sim_uuid_str = sim["problem_id"]
+                sim_uuid_obj = uuid.UUID(sim_uuid_str)
+                
+                # Filter out solved, already attempted, or already recommended problems
+                if sim_uuid_obj in solved_ids or sim_uuid_obj in recommended_ids:
+                    continue
+                
+                recommended_ids.add(sim_uuid_obj)
+                
+                # Retrieve problem code
+                p_code = db.query(Problem.problem_code).filter(Problem.id == sim_uuid_obj).scalar() or ""
+                
+                # Build reasoning
+                reason = f"Similar to '{prob.title}' where you had {attempt.attempts} failed attempts."
+                
+                recommendations.append(RecommendedProblemV2(
+                    problem_id=sim_uuid_str,
+                    problem_code=p_code,
+                    name=sim["name"],
+                    rating=sim["rating"],
+                    reason=reason
+                ))
+                
+                if len(recommendations) >= limit:
+                    break
+        except Exception as e:
+            logger.error(f"Error finding similar problems for failed problem {attempt.problem_id}: {e}")
+
+    # 3. Fallback: If no recommendations generated, recommend problems from their weakest concept clusters
+    if not recommendations:
+        from app.services.concept_clustering_service import get_weak_concepts
+        try:
+            weak_concepts = get_weak_concepts(db, handle)
+            if weak_concepts:
+                # Pick top weak concept
+                top_weak = weak_concepts[0]
+                concept_name = top_weak["concept"]
+                for rec in top_weak["recommendations"]:
+                    if len(recommendations) >= limit:
+                        break
+                    recommendations.append(RecommendedProblemV2(
+                        problem_id=rec["problem_id"],
+                        problem_code=rec["problem_code"],
+                        name=rec["name"],
+                        rating=rec["rating"],
+                        reason=f"Recommended to strengthen your understanding of '{concept_name}' (mastery: {top_weak['mastery']}%)."
+                    ))
+        except Exception as e:
+            logger.error(f"Error generating fallback recommendations: {e}")
+
+    # 4. Absolute fallback: If still empty, return some candidates from overall pool
+    if not recommendations:
+        try:
+            rating = profile.current_rating or 1200
+            candidates = _fetch_candidate_problems(
+                db, 
+                rating_low=max(800, rating - 200), 
+                rating_high=rating + 200, 
+                solved_ids=solved_ids, 
+                limit=limit
+            )
+            for c in candidates:
+                recommendations.append(RecommendedProblemV2(
+                    problem_id=str(c.id),
+                    problem_code=c.problem_code,
+                    name=c.title,
+                    rating=c.difficulty,
+                    reason="Recommended for general competitive programming practice."
+                ))
+        except Exception as e:
+            logger.error(f"Error generating absolute fallback: {e}")
+
+    return ProblemRecommendationResponseV2(
+        handle=handle,
+        recommendations=recommendations[:limit]
+    )
+

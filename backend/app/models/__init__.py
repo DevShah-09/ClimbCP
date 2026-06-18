@@ -9,6 +9,9 @@ from app.models.problem_attempt import ProblemAttempt
 from app.models.user_skill import UserSkill
 from app.models.recommendation import Recommendation
 from app.models.ai_report import AIReport
+from app.models.problem_embedding import ProblemEmbedding
+from app.models.problem_cluster import ProblemCluster
+from app.models.user_embedding import UserEmbedding
 
 __all__ = [
     "User",
@@ -22,4 +25,7 @@ __all__ = [
     "UserSkill",
     "Recommendation",
     "AIReport",
+    "ProblemEmbedding",
+    "ProblemCluster",
+    "UserEmbedding",
 ]

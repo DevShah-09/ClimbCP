@@ -58,6 +58,19 @@ def create_db_and_tables() -> None:
     Base.metadata.create_all(bind=engine)
     print("Database tables created successfully.")
 
+    # 2b. Create HNSW indexes (if using PostgreSQL)
+    if DATABASE_URL.startswith("postgresql"):
+        from sqlalchemy import text
+        try:
+            with engine.connect() as conn:
+                # Create HNSW indexes for embedding/recommendation tasks
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_problem_embeddings_hnsw ON problem_embeddings USING hnsw (embedding vector_cosine_ops);"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_embeddings_hnsw ON user_embeddings USING hnsw (embedding vector_cosine_ops);"))
+                conn.commit()
+                print("pgvector HNSW indexes checked/enabled successfully.")
+        except Exception as e:
+            print(f"Warning: Could not create pgvector HNSW indexes: {e}")
+
     # 3. Seed default competitive programming topics
     from app.models.topic import Topic
 

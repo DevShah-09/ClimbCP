@@ -83,3 +83,18 @@ class RoadmapResponse(BaseModel):
     weeks: list[RoadmapWeek]
     total_weeks: int
     focus_summary: str        # one-sentence overview of the plan
+
+
+# ── Feature 5: V2 Problem Recommendations (Embedding-Based) ─────────────────
+
+class RecommendedProblemV2(BaseModel):
+    problem_id: str
+    problem_code: str
+    name: str
+    rating: Optional[int]
+    reason: str
+
+class ProblemRecommendationResponseV2(BaseModel):
+    handle: str
+    recommendations: list[RecommendedProblemV2]
+

@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from app.models.recommendation import Recommendation
     from app.models.ai_report import AIReport
     from app.models.problem_attempt import ProblemAttempt
+    from app.models.user_embedding import UserEmbedding
 
 
 class User(Base):
@@ -90,5 +91,10 @@ class User(Base):
     )
     attempts: Mapped[list["ProblemAttempt"]] = relationship(
         back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    embedding_rel: Mapped["UserEmbedding"] = relationship(
+        back_populates="user",
+        uselist=False,
         cascade="all, delete-orphan"
     )

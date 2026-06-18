@@ -13,6 +13,11 @@ from app.routers import (
     strengths_router,
     recommendations_router,
     ai_router,
+    embeddings_router,
+    problems_router,
+    concepts_router,
+    recommendations_v2_router,
+    users_router,
 )
 
 @asynccontextmanager
@@ -48,6 +53,11 @@ app.include_router(weaknesses_router, dependencies=[Depends(default_rate_limit)]
 app.include_router(strengths_router, dependencies=[Depends(default_rate_limit)])
 app.include_router(recommendations_router, dependencies=[Depends(default_rate_limit)])
 app.include_router(ai_router)
+app.include_router(embeddings_router, dependencies=[Depends(default_rate_limit)])
+app.include_router(problems_router, dependencies=[Depends(default_rate_limit)])
+app.include_router(concepts_router, dependencies=[Depends(default_rate_limit)])
+app.include_router(recommendations_v2_router, dependencies=[Depends(default_rate_limit)])
+app.include_router(users_router, dependencies=[Depends(default_rate_limit)])
 
 @app.get("/")
 def read_root():

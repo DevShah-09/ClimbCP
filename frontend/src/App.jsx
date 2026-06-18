@@ -7,6 +7,8 @@ import WeaknessAnalysis from './pages/WeaknessAnalysis';
 import Recommendations from './pages/Recommendations';
 import AiCoach from './pages/AiCoach';
 import Login from './pages/Login';
+import LearningMap from './pages/LearningMap';
+import SimilarUsers from './pages/SimilarUsers';
 import { LoadingSpinner } from './components/UIStates';
 
 function AppContent() {
@@ -32,6 +34,8 @@ function AppContent() {
         <Route path="/weaknesses" element={<WeaknessAnalysis />} />
         <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/ai-coach" element={<AiCoach />} />
+        <Route path="/learning-map" element={<LearningMap />} />
+        <Route path="/similar-users" element={<SimilarUsers />} />
       </Route>
     </Routes>
   );

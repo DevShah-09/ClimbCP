@@ -72,5 +72,26 @@ export const aiApi = {
     api.get(`/ai/bottlenecks/${handle}`).then(r => r.data),
 };
 
+export const embeddingsApi = {
+  generateProblems: () => api.post('/embeddings/problems/generate').then(r => r.data),
+  generateUser: (handle) => api.post(`/embeddings/users/generate/${handle}`).then(r => r.data),
+};
+
+export const conceptsApi = {
+  getConcepts: (handle) => api.get(`/concepts/${handle}`).then(r => r.data),
+};
+
+export const problemsApi = {
+  getSimilar: (problemId) => api.get(`/problems/${problemId}/similar`).then(r => r.data),
+};
+
+export const recommendationsApiV2 = {
+  getRecommendationsV2: (handle) => api.get(`/recommendations/v2/${handle}`).then(r => r.data.recommendations ?? []),
+};
+
+export const usersApi = {
+  getSimilar: (handle) => api.get(`/users/${handle}/similar`).then(r => r.data),
+};
+
 export default api;
 
