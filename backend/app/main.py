@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.database import create_db_and_tables
+from app.core.rate_limit import default_rate_limit
 from app.routers import (
     sync_router,
     analytics_router,
@@ -39,13 +40,13 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
-app.include_router(sync_router)
-app.include_router(analytics_router)
-app.include_router(ratings_router)
-app.include_router(topics_router)
-app.include_router(weaknesses_router)
-app.include_router(strengths_router)
-app.include_router(recommendations_router)
+app.include_router(sync_router, dependencies=[Depends(default_rate_limit)])
+app.include_router(analytics_router, dependencies=[Depends(default_rate_limit)])
+app.include_router(ratings_router, dependencies=[Depends(default_rate_limit)])
+app.include_router(topics_router, dependencies=[Depends(default_rate_limit)])
+app.include_router(weaknesses_router, dependencies=[Depends(default_rate_limit)])
+app.include_router(strengths_router, dependencies=[Depends(default_rate_limit)])
+app.include_router(recommendations_router, dependencies=[Depends(default_rate_limit)])
 app.include_router(ai_router)
 
 @app.get("/")

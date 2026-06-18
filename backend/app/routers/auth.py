@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database.database import get_db
@@ -9,13 +9,24 @@ from app.schemas.user import UserRegister, UserLogin, UserResponse, TokenRespons
 from app.core.security import hash_password, verify_password, create_jwt, get_current_user
 from app.services import codeforces_service
 from app.services.codeforces_service import InvalidHandleException
+from app.core.rate_limit import limiter, RATE_LIMIT_CONFIGS, get_client_ip, default_rate_limit
 
 logger = logging.getLogger("auth")
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(user_in: UserRegister, db: Session = Depends(get_db)):
+def register(user_in: UserRegister, request: Request, db: Session = Depends(get_db)):
+    # Rate limit check by IP
+    ip = get_client_ip(request)
+    max_req, window = RATE_LIMIT_CONFIGS.get("register", (3, 3600))
+    allowed, retry_after = limiter.is_allowed(f"register:ip:{ip}", max_req, window)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many registration attempts. Please try again in {retry_after} seconds.",
+            headers={"Retry-After": str(retry_after)}
+        )
     # 1. Validate username unique
     existing_username = db.query(User).filter(
         func.lower(User.username) == user_in.username.lower()
@@ -101,7 +112,29 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(login_in: UserLogin, db: Session = Depends(get_db)):
+def login(login_in: UserLogin, request: Request, db: Session = Depends(get_db)):
+    # Rate limit check by IP and username
+    ip = get_client_ip(request)
+    max_req, window = RATE_LIMIT_CONFIGS.get("login", (5, 60))
+    
+    # 1. IP rate limit check
+    allowed_ip, retry_after_ip = limiter.is_allowed(f"login:ip:{ip}", max_req, window)
+    if not allowed_ip:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many login attempts from this IP. Please try again in {retry_after_ip} seconds.",
+            headers={"Retry-After": str(retry_after_ip)}
+        )
+        
+    # 2. Username rate limit check
+    username_key = f"login:username:{login_in.username.lower()}"
+    allowed_username, retry_after_user = limiter.is_allowed(username_key, max_req, window)
+    if not allowed_username:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many login attempts for this user. Please try again in {retry_after_user} seconds.",
+            headers={"Retry-After": str(retry_after_user)}
+        )
     # Find user by username or email
     user = db.query(User).filter(
         (func.lower(User.username) == login_in.username.lower()) |
@@ -129,6 +162,6 @@ def login(login_in: UserLogin, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse, dependencies=[Depends(default_rate_limit)])
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user

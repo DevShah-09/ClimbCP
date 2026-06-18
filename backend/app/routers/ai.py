@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.core.security import get_current_user
+from app.core.rate_limit import ai_rate_limit
 from app.models.user import User
 from app.schemas.ai import (
     ContestReviewRequest,
@@ -38,6 +39,7 @@ ai_router = APIRouter(prefix="/ai", tags=["AI Coaching"])
         "report including strengths, weaknesses, missed opportunities, and an action plan. "
         "Reports are cached for 6 hours to minimise LLM API cost."
     ),
+    dependencies=[Depends(ai_rate_limit)],
 )
 def post_contest_review(
     request: ContestReviewRequest,
@@ -95,6 +97,7 @@ def post_contest_review(
         "why a user's rating is declining or stagnating. Returns major causes and "
         "concrete recommended actions grounded in real statistics."
     ),
+    dependencies=[Depends(ai_rate_limit)],
 )
 def get_rating_loss_explanation(
     handle: str,
@@ -148,6 +151,7 @@ def get_rating_loss_explanation(
         "and upsolving habits with AI-generated narrative coaching. "
         "Each bottleneck receives an impact score from 0 (no effect) to 100 (critical)."
     ),
+    dependencies=[Depends(ai_rate_limit)],
 )
 def get_bottleneck_analysis(
     handle: str,
