@@ -4,35 +4,35 @@ ClimbCP is a professional, advanced analytics and AI-powered training assistant 
 
 ---
 
-## 🚀 Key Features
+##  Key Features
 
-### 🔐 1. Authentication & Onboarding
+### 1. Authentication & Onboarding
 *   **User Registration:** Secure user registration with live validation of Codeforces handles.
 *   **JWT-Based Auth & Session Persistence:** Tokens persist user sessions across page reloads.
 *   **Initial Codeforces Sync:** Fetches user ratings, submissions, and contest history automatically upon registration.
 *   **Protected Routes:** Solid middleware-backed protection for all analytics and coaching APIs.
 
-### 📊 2. Rich Analytics & Topic Intelligence
+###2. Rich Analytics & Topic Intelligence
 *   **Activity Statistics:** Track submissions, solve counts, and active coding streaks.
 *   **Topic Mastery Engine:** Calculates a mastery score (0-100) across 18 core competitive programming concepts (e.g., Dynamic Programming, Trees, Greedy, Flows).
 *   **Weakness & Strength Detection:** Automatically identifies topics that represent bottlenecks or fields of expertise based on historical submission accuracy and ratings.
 
-### 💡 3. Personalized Recommendation System
+###3. Personalized Recommendation System
 *   **Problem Recommendations (V1):** Recommends specific competitive programming problems tailored to your target rating and weakness areas.
 *   **Practice Sets:** Generate custom problem lists tailored to targeted subskills.
 *   **Learning Roadmap:** Dynamically generated roadmap guiding you through new concepts with concrete problem milestones.
 
-### 🤖 4. AI-Powered Coaching
+###4. AI-Powered Coaching
 *   **AI Contest Review:** Upload and analyze contest performances to see where you lost points or struggled.
 *   **Rating Loss Explanation:** Deep explanation of why a rating drop occurred in a recent contest.
 *   **Performance Bottleneck Analysis:** Pinpoint exact areas in reasoning, speed, or implementation where your performance lags.
 
-### 🧠 5. Advanced Vector Intelligence
+###5. Advanced Vector Intelligence
 *   **Problem Embeddings:** Uses SentenceTransformers (`all-MiniLM-L6-v2`) to embed competitive programming problems into vectors based on title, tags, and difficulty.
 *   **User Embeddings:** Generates a 128-dimensional profile vector mapping user mastery and performance.
 *   **Peer Discovery:** Locates users with similar learning trajectories and solving behaviors using cosine similarity (native `pgvector` HNSW index on PostgreSQL or NumPy fallback on SQLite).
 
-### 🔮 6. Future Features (In Pipeline)
+###6. Future Features (In Pipeline)
 *   **Predictive Analytics:**
     *   **Rating Predictor:** Estimate rating changes and forecast upcoming performance trends.
     *   **Contest Readiness Score:** Evaluate preparation levels for scheduled rounds based on dynamic topic mastery and recent practice.
@@ -44,7 +44,7 @@ ClimbCP is a professional, advanced analytics and AI-powered training assistant 
 
 ---
 
-## 🛠️ Tech Stack
+##Tech Stack
 
 ### Backend
 *   **Framework:** [FastAPI](https://fastapi.tiangolo.com/) (Python 3.10+)
@@ -63,7 +63,7 @@ ClimbCP is a professional, advanced analytics and AI-powered training assistant 
 
 ---
 
-## 📁 Repository Structure
+##Repository Structure
 
 ```text
 ClimbCP/
@@ -97,7 +97,7 @@ ClimbCP/
 
 ## ⚙️ Setup & Installation
 
-### 🐍 Backend Configuration
+###Backend Configuration
 
 1.  **Navigate to the backend directory:**
     ```bash
@@ -156,7 +156,7 @@ ClimbCP/
 
 ---
 
-### ⚛️ Frontend Configuration
+###Frontend Configuration
 
 1.  **Navigate to the frontend directory:**
     ```bash
@@ -182,7 +182,7 @@ ClimbCP/
 
 ---
 
-## 🗺️ Roadmap & Phase Progression
+##Roadmap & Phase Progression
 
 Below is the implementation status of ClimbCP's features:
 
