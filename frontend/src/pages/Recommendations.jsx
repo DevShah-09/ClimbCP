@@ -195,7 +195,7 @@ export default function Recommendations() {
               : 'text-text-secondary hover:text-white'
           }`}
         >
-          Embedding-Based Failure Recovery (V2)
+          Advance Recommendations
         </button>
       </div>
 

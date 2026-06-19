@@ -261,22 +261,30 @@ def calculate_topic_mastery(db: Session, handle: str) -> TopicMasteryResponse:
 
 # ── Feature 3: Weakness Detection ─────────────────────────────────────────────
 
-def _priority_from_score(score: int) -> str:
-    if score < 60:
-        return "High"
-    if score < 75:
-        return "Medium"
-    return "Low"
-
-
 def get_weaknesses(db: Session, handle: str) -> WeaknessResponse:
     logger.info(f"Weakness detection started for handle: {handle}")
 
     mastery = calculate_topic_mastery(db, handle)
 
+    # A topic is considered a weakness if mastery score is less than 75
+    weak_masteries = [m for m in mastery.masteries if m.score < 75]
+
+    # Sort ascending (weakest first) to prioritize the lowest scores
+    weak_masteries.sort(key=lambda x: x.score)
+
     items: list[WeaknessItem] = []
-    for m in mastery.masteries:
-        priority = _priority_from_score(m.score)
+    n = len(weak_masteries)
+
+    for idx, m in enumerate(weak_masteries):
+        # Dynamically distribute priority to avoid priority bloat
+        # Bottom third: High Priority, Middle third: Medium Priority, Top third: Low Priority
+        if idx < math.ceil(n / 3):
+            priority = "High"
+        elif idx < math.ceil(2 * n / 3):
+            priority = "Medium"
+        else:
+            priority = "Low"
+
         suggestion = SUGGESTIONS.get(m.topic.lower(), DEFAULT_SUGGESTION)
         items.append(WeaknessItem(
             topic=m.topic,
@@ -285,8 +293,6 @@ def get_weaknesses(db: Session, handle: str) -> WeaknessResponse:
             suggestion=suggestion,
         ))
 
-    # Sort ascending (weakest first)
-    items.sort(key=lambda x: x.score)
     logger.info(f"Weaknesses generated: {len(items)} topics returned")
     return WeaknessResponse(weaknesses=items)
 
