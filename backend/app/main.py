@@ -56,9 +56,13 @@ allow_credentials = True
 if "*" in allowed_origins:
     allow_credentials = False
 
+# Support wildcard ports for localhost/127.0.0.1 in development to prevent CORS blocks
+local_origin_regex = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=local_origin_regex,
     allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
