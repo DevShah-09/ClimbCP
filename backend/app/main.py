@@ -1,6 +1,8 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 from app.database.database import create_db_and_tables
 from app.core.rate_limit import default_rate_limit
 from app.routers import (
@@ -20,6 +22,9 @@ from app.routers import (
     users_router,
 )
 
+# Load environment variables
+load_dotenv()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Create tables and seed data
@@ -35,10 +40,26 @@ app = FastAPI(
 )
 
 # Configure CORS
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
+if allowed_origins_str:
+    allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+else:
+    # Default to local development ports
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+    ]
+
+# If "*" is in allowed origins, Starlette requires allow_credentials to be False
+allow_credentials = True
+if "*" in allowed_origins:
+    allow_credentials = False
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

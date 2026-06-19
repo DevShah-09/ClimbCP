@@ -10,6 +10,9 @@ load_dotenv()
 # Read database URL from environment or default to a local PostgreSQL database
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/climbcp")
 
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # For SQLite, check_same_thread is required to allow multi-threaded access in FastAPI
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
