@@ -20,7 +20,7 @@ _CACHE: dict = {
     "problems": [],        # list of raw CF problem dicts
     "fetched_at": 0.0,    # epoch seconds
 }
-CACHE_TTL = 1800           # 30 minutes
+CACHE_TTL = 300            # 5 minutes
 
 CF_PROBLEMSET_URL = "https://codeforces.com/api/problemset.problems"
 
