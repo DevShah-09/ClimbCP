@@ -2,8 +2,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.models.user import User
-from app.models.platform_account import PlatformAccount
+from app.models.cf_user import CFUser
 from app.models.user_embedding import UserEmbedding
 from app.models.problem_attempt import ProblemAttempt
 from app.models.problem import Problem
@@ -25,11 +24,11 @@ def generate_user_embedding(db: Session, handle: str) -> List[float]:
     Gathers user performance metrics, normalizes them into a 0-1 range,
     and constructs a 128-dimensional user vector. Stores the vector in the DB.
     """
-    account = db.query(PlatformAccount).filter(PlatformAccount.handle.ilike(handle)).first()
-    if not account:
+    user = db.query(CFUser).filter(CFUser.handle.ilike(handle)).first()
+    if not user:
         raise ValueError(f"No profile found for handle '{handle}'")
 
-    user_id = account.user_id
+    user_id = user.id
 
     # 1. Fetch topic mastery scores (18 features)
     try:
@@ -99,11 +98,11 @@ def find_similar_users(db: Session, handle: str, limit: int = 5) -> List[Dict[st
     Searches for other user profiles with similar learning patterns using cosine similarity.
     Supports PostgreSQL pgvector queries and SQLite fallback.
     """
-    account = db.query(PlatformAccount).filter(PlatformAccount.handle.ilike(handle)).first()
-    if not account:
+    user = db.query(CFUser).filter(CFUser.handle.ilike(handle)).first()
+    if not user:
         raise ValueError(f"No profile found for handle '{handle}'")
 
-    user_id = account.user_id
+    user_id = user.id
 
     # Get target user's embedding
     target_emb = db.query(UserEmbedding).filter(UserEmbedding.user_id == user_id).first()
@@ -118,23 +117,22 @@ def find_similar_users(db: Session, handle: str, limit: int = 5) -> List[Dict[st
         # pgvector cosine distance query
         distance = UserEmbedding.embedding.cosine_distance(target_vector)
         results = (
-            db.query(User, PlatformAccount, distance)
-            .join(UserEmbedding, UserEmbedding.user_id == User.id)
-            .join(PlatformAccount, PlatformAccount.user_id == User.id)
-            .filter(User.id != user_id)
+            db.query(CFUser, distance)
+            .join(UserEmbedding, UserEmbedding.user_id == CFUser.id)
+            .filter(CFUser.id != user_id)
             .order_by(distance)
             .limit(limit)
             .all()
         )
 
         similar_users = []
-        for u, pa, dist in results:
+        for u, dist in results:
             similarity = round(1.0 - float(dist), 4)
             similar_users.append({
-                "handle": u.codeforces_handle,
+                "handle": u.handle,
                 "similarity": similarity,
-                "rating": pa.current_rating or 1200,
-                "max_rating": pa.max_rating or 1200
+                "rating": u.current_rating or 1200,
+                "max_rating": u.max_rating or 1200
             })
         return similar_users
     else:
@@ -142,9 +140,8 @@ def find_similar_users(db: Session, handle: str, limit: int = 5) -> List[Dict[st
         import numpy as np
         all_embeddings = (
             db.query(UserEmbedding)
-            .join(User, User.id == UserEmbedding.user_id)
-            .join(PlatformAccount, PlatformAccount.user_id == User.id)
-            .filter(User.id != user_id)
+            .join(CFUser, CFUser.id == UserEmbedding.user_id)
+            .filter(CFUser.id != user_id)
             .all()
         )
 
@@ -156,26 +153,23 @@ def find_similar_users(db: Session, handle: str, limit: int = 5) -> List[Dict[st
         scored_users = []
         for ue in all_embeddings:
             u = ue.user
-            pa = next((p for p in u.platform_accounts if p.platform == "codeforces"), None)
-            if not pa:
-                continue
             vec = np.array(ue.embedding, dtype=np.float32)
             norm = np.linalg.norm(vec)
             if norm == 0:
                 norm = 1e-9
             sim = np.dot(target_vec, vec) / (target_norm * norm)
-            scored_users.append((u, pa, float(sim)))
+            scored_users.append((u, float(sim)))
 
         # Sort descending by similarity
-        scored_users.sort(key=lambda x: x[2], reverse=True)
+        scored_users.sort(key=lambda x: x[1], reverse=True)
 
         similar_users = []
-        for u, pa, sim in scored_users[:limit]:
+        for u, sim in scored_users[:limit]:
             similar_users.append({
-                "handle": u.codeforces_handle,
+                "handle": u.handle,
                 "similarity": round(sim, 4),
-                "rating": pa.current_rating or 1200,
-                "max_rating": pa.max_rating or 1200
+                "rating": u.current_rating or 1200,
+                "max_rating": u.max_rating or 1200
             })
         return similar_users
 
@@ -183,11 +177,11 @@ def get_similar_user_insights(db: Session, handle: str) -> Dict[str, Any]:
     """
     Analyzes peers with similar CP profiles to generate actionable insights and recommendations.
     """
-    account = db.query(PlatformAccount).filter(PlatformAccount.handle.ilike(handle)).first()
-    if not account:
+    user = db.query(CFUser).filter(CFUser.handle.ilike(handle)).first()
+    if not user:
         raise ValueError(f"No profile found for handle '{handle}'")
 
-    user_id = account.user_id
+    user_id = user.id
 
     # Find similar users
     peers = find_similar_users(db, handle, limit=5)
@@ -207,7 +201,7 @@ def get_similar_user_insights(db: Session, handle: str) -> Dict[str, Any]:
 
     # Gather peer solved problems
     peer_handles = [p["handle"] for p in peers]
-    peer_users = db.query(User).filter(User.codeforces_handle.in_(peer_handles)).all()
+    peer_users = db.query(CFUser).filter(CFUser.handle.in_(peer_handles)).all()
     peer_ids = [u.id for u in peer_users]
 
     peer_solved = (

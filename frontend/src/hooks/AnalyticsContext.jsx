@@ -1,11 +1,9 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { analyticsApi, authApi } from '../services/api';
+import { createContext, useContext, useState, useCallback } from 'react';
+import { analyticsApi, syncApi } from '../services/api';
 
 const AnalyticsContext = createContext(null);
 
 export function AnalyticsProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
   const [handle, setHandle] = useState('');
   const [analytics, setAnalytics] = useState(null);
   const [ratingHistory, setRatingHistory] = useState(null);
@@ -16,8 +14,8 @@ export function AnalyticsProvider({ children }) {
   const [strengths, setStrengths] = useState(null);
   const [recommendations, setRecommendations] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
-  const [initialized, setInitialized] = useState(false);
 
   const fetchAllData = useCallback(async (searchHandle) => {
     if (!searchHandle?.trim()) return false;
@@ -51,9 +49,8 @@ export function AnalyticsProvider({ children }) {
       setWeaknesses(weak.status === 'fulfilled' ? weak.value : null);
       setStrengths(strengths.status === 'fulfilled' ? strengths.value : null);
       setRecommendations(recs.status === 'fulfilled' ? recs.value : null);
-      
+
       setHandle(h);
-      localStorage.setItem('climbcp_handle', h);
       return true;
     } catch (err) {
       setError(err.message || 'An unexpected error occurred');
@@ -63,50 +60,34 @@ export function AnalyticsProvider({ children }) {
     }
   }, []);
 
-  const login = useCallback(async (username, password) => {
-    setLoading(true);
+  /**
+   * Main entry point: sync the handle with Codeforces then load all data.
+   * Always fetches fresh data from CF on every call (fixes stale rating bug).
+   */
+  const enterHandle = useCallback(async (inputHandle) => {
+    if (!inputHandle?.trim()) return false;
+    const h = inputHandle.trim();
     setError(null);
-    try {
-      const res = await authApi.login({ username, password });
-      setToken(res.access_token);
-      setUser(res.user);
-      setHandle(res.user.codeforces_handle);
-      localStorage.setItem('climbcp_token', res.access_token);
-      localStorage.setItem('climbcp_handle', res.user.codeforces_handle);
-      
-      // Load analytics data
-      await fetchAllData(res.user.codeforces_handle);
-      return true;
-    } catch (err) {
-      setError(err.message || 'Login failed');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchAllData]);
+    setSyncing(true);
 
-  const register = useCallback(async (username, email, codeforces_handle, password) => {
-    setLoading(true);
-    setError(null);
     try {
-      // Register the user & trigger initial sync in backend
-      await authApi.register({ username, email, codeforces_handle, password });
-      
-      // Auto login
-      const success = await login(username, password);
-      return success;
+      // Step 1: Sync with Codeforces API (creates/updates CFUser + fetches latest rating/submissions)
+      await syncApi.syncHandle(h);
     } catch (err) {
-      setError(err.message || 'Registration failed');
+      // If CF is down or handle invalid, surface the error and stop
+      setError(err.message || 'Failed to sync with Codeforces. Check the handle and try again.');
+      setSyncing(false);
       return false;
     } finally {
-      setLoading(false);
+      setSyncing(false);
     }
-  }, [login]);
+
+    // Step 2: Load analytics from DB (which now has fresh data)
+    return fetchAllData(h);
+  }, [fetchAllData]);
 
   const clearData = useCallback(() => {
     setHandle('');
-    setUser(null);
-    setToken(null);
     setAnalytics(null);
     setRatingHistory(null);
     setContestStats(null);
@@ -116,37 +97,14 @@ export function AnalyticsProvider({ children }) {
     setStrengths(null);
     setRecommendations(null);
     setError(null);
-    localStorage.removeItem('climbcp_handle');
-    localStorage.removeItem('climbcp_token');
   }, []);
-
-  // Auto-login on mount
-  useEffect(() => {
-    const savedToken = localStorage.getItem('climbcp_token');
-    const loadSession = async () => {
-      if (savedToken) {
-        setToken(savedToken);
-        try {
-          const me = await authApi.getMe();
-          setUser(me);
-          setHandle(me.codeforces_handle);
-          localStorage.setItem('climbcp_handle', me.codeforces_handle);
-          await fetchAllData(me.codeforces_handle);
-        } catch (err) {
-          console.error("Session load failed, clearing tokens:", err);
-          clearData();
-        }
-      }
-      setInitialized(true);
-    };
-    loadSession();
-  }, [fetchAllData, clearData]);
 
   return (
     <AnalyticsContext.Provider value={{
-      user, token, handle, analytics, ratingHistory, contestStats, activityStats,
-      topicData, weaknesses, strengths, recommendations, loading, error, initialized,
-      fetchAllData, clearData, login, register
+      handle, analytics, ratingHistory, contestStats, activityStats,
+      topicData, weaknesses, strengths, recommendations,
+      loading, syncing, error,
+      enterHandle, fetchAllData, clearData,
     }}>
       {children}
     </AnalyticsContext.Provider>

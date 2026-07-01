@@ -25,7 +25,7 @@ from typing import Optional
 from sqlalchemy import func, case
 from sqlalchemy.orm import Session
 
-from app.models.platform_account import PlatformAccount
+from app.models.cf_user import CFUser
 from app.models.problem import Problem
 from app.models.problem_attempt import ProblemAttempt
 from app.models.problem_topic import ProblemTopic
@@ -191,16 +191,16 @@ VIRTUAL_CONTEST_TASKS = [
 
 # ── Internal Helpers ───────────────────────────────────────────────────────────
 
-def _get_user_profile(db: Session, handle: str) -> PlatformAccount:
-    """Return PlatformAccount or raise ValueError."""
-    account = (
-        db.query(PlatformAccount)
-        .filter(func.lower(PlatformAccount.handle) == handle.lower())
+def _get_user_profile(db: Session, handle: str) -> CFUser:
+    """Return CFUser or raise ValueError."""
+    user = (
+        db.query(CFUser)
+        .filter(func.lower(CFUser.handle) == handle.lower())
         .first()
     )
-    if not account:
+    if not user:
         raise ValueError(f"No profile found for handle '{handle}'")
-    return account
+    return user
 
 
 def _get_solved_problem_ids(db: Session, user_id) -> set:
@@ -425,12 +425,12 @@ def get_problem_recommendations(
     logger.info(f"Recommendation generation started for handle: {handle}")
 
     profile = _get_user_profile(db, handle)
-    logger.info(f"User found: {profile.user_id}, rating={profile.current_rating}")
+    logger.info(f"User found: {profile.id}, rating={profile.current_rating}")
 
     user_rating = profile.current_rating or 1200
 
     # Solved codes (e.g. "1234A") used to exclude from CF pool
-    solved_codes = _get_solved_problem_codes(db, profile.user_id)
+    solved_codes = _get_solved_problem_codes(db, profile.id)
     logger.info(f"Solved problems to exclude: {len(solved_codes)}")
 
     # Mastery map for topic scoring
@@ -555,10 +555,10 @@ def generate_practice_set(db: Session, handle: str) -> PracticeSetResponse:
     logger.info(f"Practice set generation started for handle: {handle}")
 
     profile = _get_user_profile(db, handle)
-    logger.info(f"User found: {profile.user_id}")
+    logger.info(f"User found: {profile.id}")
 
     user_rating = profile.current_rating or 1200
-    solved_ids = _get_solved_problem_ids(db, profile.user_id)
+    solved_ids = _get_solved_problem_ids(db, profile.id)
 
     try:
         mastery_map = _get_topic_mastery_map(db, handle)
@@ -741,7 +741,7 @@ def generate_learning_roadmap(db: Session, handle: str) -> RoadmapResponse:
     logger.info(f"Roadmap generation started for handle: {handle}")
 
     profile = _get_user_profile(db, handle)
-    logger.info(f"User found: {profile.user_id}")
+    logger.info(f"User found: {profile.id}")
 
     user_rating = profile.current_rating or 1200
 
@@ -839,7 +839,7 @@ def get_recommendations_v2(
     import uuid
 
     profile = _get_user_profile(db, handle)
-    user_id = profile.user_id
+    user_id = profile.id
 
     # 1. Fetch user's failed attempts (attempted > 0, solved == False)
     failed_attempts = (

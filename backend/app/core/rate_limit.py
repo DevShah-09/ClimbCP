@@ -3,7 +3,6 @@ import time
 from threading import Lock
 from typing import Dict, List, Tuple, Optional
 from fastapi import Request, HTTPException, status, Depends
-from app.models.user import User
 
 class InMemoryRateLimiter:
     """
@@ -106,15 +105,12 @@ async def default_rate_limit(request: Request):
             headers={"Retry-After": str(retry_after)}
         )
 
-# Import get_current_user here to avoid circular imports if needed
-from app.core.security import get_current_user
-
-async def ai_rate_limit(request: Request, current_user: User = Depends(get_current_user)):
+async def ai_rate_limit(request: Request):
     """
-    FastAPI dependency to rate limit expensive AI endpoints by combined user ID and client IP.
+    FastAPI dependency to rate limit expensive AI endpoints by client IP.
     """
     ip = get_client_ip(request)
-    key = f"ai:{current_user.id}:{ip}"
+    key = f"ai:{ip}"
     max_requests, window_seconds = RATE_LIMIT_CONFIGS.get("ai", (5, 60))
     
     allowed, retry_after = limiter.is_allowed(key, max_requests, window_seconds)

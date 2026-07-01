@@ -9,18 +9,9 @@ import AiCoach from './pages/AiCoach';
 import Login from './pages/Login';
 import LearningMap from './pages/LearningMap';
 import SimilarUsers from './pages/SimilarUsers';
-import { LoadingSpinner } from './components/UIStates';
 
 function AppContent() {
-  const { handle, initialized } = useAnalytics();
-
-  if (!initialized) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner size={32} message="Loading your CP profile..." />
-      </div>
-    );
-  }
+  const { handle } = useAnalytics();
 
   if (!handle) {
     return <Login />;
@@ -50,4 +41,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-

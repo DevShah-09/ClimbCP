@@ -5,24 +5,8 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 90000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
-
-// Request interceptor to attach bearer token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('climbcp_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 api.interceptors.response.use(
   (response) => response,
@@ -38,10 +22,8 @@ api.interceptors.response.use(
   }
 );
 
-export const authApi = {
-  register: (data) => api.post('/auth/register', data).then(r => r.data),
-  login: (data) => api.post('/auth/login', data).then(r => r.data),
-  getMe: () => api.get('/auth/me').then(r => r.data),
+export const syncApi = {
+  syncHandle: (handle) => api.post(`/sync/codeforces/${handle}`).then(r => r.data),
 };
 
 export const analyticsApi = {
@@ -50,7 +32,6 @@ export const analyticsApi = {
   getContestStats: (handle) => api.get(`/analytics/${handle}/contests`).then(r => r.data),
   getActivityStats: (handle) => api.get(`/analytics/${handle}/activity`).then(r => r.data),
 
-  // Phase 2 — real endpoints: transform response shape to flat arrays for components
   getTopicAnalytics: (handle) =>
     api.get(`/topics/${handle}/mastery`).then(r => r.data.masteries ?? []),
   getWeaknesses: (handle) =>
@@ -58,17 +39,16 @@ export const analyticsApi = {
   getStrengths: (handle) =>
     api.get(`/strengths/${handle}`).then(r => r.data.strengths ?? []),
 
-  // Phase 3 — live backend endpoint (limit: 1–30)
   getRecommendations: (handle, limit = 10) =>
     api.get(`/recommendations/${handle}`, { params: { limit } }).then(r => r.data.recommendations ?? []),
 };
 
 export const aiApi = {
-  getContestReview: (handle, contestId) => 
+  getContestReview: (handle, contestId) =>
     api.post('/ai/contest-review', { handle, contest_id: contestId }).then(r => r.data),
-  getRatingLoss: (handle) => 
+  getRatingLoss: (handle) =>
     api.get(`/ai/rating-loss/${handle}`).then(r => r.data),
-  getBottlenecks: (handle) => 
+  getBottlenecks: (handle) =>
     api.get(`/ai/bottlenecks/${handle}`).then(r => r.data),
 };
 
@@ -94,4 +74,3 @@ export const usersApi = {
 };
 
 export default api;
-

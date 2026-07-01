@@ -9,8 +9,6 @@ from app.services.codeforces_service import (
     CodeforcesTimeoutException,
     CodeforcesException
 )
-from app.core.security import get_current_user, verify_handle_ownership
-from app.models.user import User
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
@@ -18,13 +16,11 @@ router = APIRouter(prefix="/sync", tags=["sync"])
 def sync_codeforces(
     handle: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
     """
-    Triggers database synchronization for a user's Codeforces profile,
-    rating history, and submissions.
+    Triggers database synchronization for a Codeforces profile,
+    rating history, and submissions. No auth required.
     """
-    verify_handle_ownership(handle, current_user)
     try:
         result = codeforces_service.sync_user_data(db, handle)
         return result

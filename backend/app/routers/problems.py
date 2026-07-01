@@ -2,8 +2,6 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.database import get_db
-from app.core.security import get_current_user
-from app.models.user import User
 from app.services import problem_embedding_service
 
 logger = logging.getLogger("problems_router")
@@ -13,8 +11,7 @@ router = APIRouter(prefix="/problems", tags=["problems"])
 @router.get("/{problem_id}/similar", status_code=status.HTTP_200_OK)
 def get_similar_problems(
     problem_id: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     Find top 10 semantically similar problems based on vector distance.

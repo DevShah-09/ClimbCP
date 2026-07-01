@@ -1,13 +1,11 @@
 import logging
 import requests
-import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.models.user import User
-from app.models.platform_account import PlatformAccount
+from app.models.cf_user import CFUser
 from app.models.contest import Contest
 from app.models.contest_participation import ContestParticipation
 from app.models.problem import Problem
@@ -207,48 +205,26 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
         official_handle = cf_profile_info.get("handle", handle)
         logger.info(f"User fetched from Codeforces: {official_handle}")
 
-        # Step 3: Create or update the user record
-        profile = db.query(PlatformAccount).filter(
-            PlatformAccount.platform == "codeforces",
-            func.lower(PlatformAccount.handle) == handle.lower()
+        # Step 3: Find or create CFUser record
+        user = db.query(CFUser).filter(
+            func.lower(CFUser.handle) == handle.lower()
         ).first()
 
-        if profile:
-            user = profile.user
-            # Update profile details
-            profile.handle = official_handle
-            profile.current_rating = cf_profile_info.get("rating")
-            profile.max_rating = cf_profile_info.get("maxRating")
-            user.codeforces_handle = official_handle
+        if user:
+            # Update rating info on every sync
+            user.handle = official_handle
+            user.current_rating = cf_profile_info.get("rating")
+            user.max_rating = cf_profile_info.get("maxRating")
+            user.last_synced_at = datetime.now(timezone.utc)
         else:
-            # Check if User with username already exists (case-insensitive)
-            user = db.query(User).filter(func.lower(User.username) == handle.lower()).first()
-            if not user:
-                # Generate unique email placeholder
-                email = f"{handle.lower()}@climbcp.com"
-                existing_email_user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
-                if existing_email_user:
-                    email = f"{handle.lower()}-{uuid.uuid4().hex[:8]}@climbcp.com"
-
-                user = User(
-                    username=official_handle,
-                    email=email,
-                    password_hash="pbkdf2:sha256:dummy_password_for_synced_user",
-                    codeforces_handle=official_handle
-                )
-                db.add(user)
-                db.flush()  # to populate user.id
-
-            # Create PlatformAccount
-            profile = PlatformAccount(
-                user_id=user.id,
-                platform="codeforces",
+            user = CFUser(
                 handle=official_handle,
                 current_rating=cf_profile_info.get("rating"),
-                max_rating=cf_profile_info.get("maxRating")
+                max_rating=cf_profile_info.get("maxRating"),
+                last_synced_at=datetime.now(timezone.utc)
             )
-            db.add(profile)
-            db.flush()
+            db.add(user)
+            db.flush()  # populate user.id
 
         # Step 4: Fetch rating history
         rating_history = get_user_rating_history(official_handle)

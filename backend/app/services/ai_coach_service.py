@@ -28,7 +28,7 @@ from sqlalchemy.orm import Session
 from app.models.ai_report import AIReport
 from app.models.contest import Contest
 from app.models.contest_participation import ContestParticipation
-from app.models.platform_account import PlatformAccount
+from app.models.cf_user import CFUser
 from app.models.problem_attempt import ProblemAttempt
 from app.models.problem import Problem
 from app.models.problem_topic import ProblemTopic
@@ -65,11 +65,11 @@ def _cache_hours() -> int:
 
 # ── Internal Helpers ───────────────────────────────────────────────────────────
 
-def _resolve_account(db: Session, handle: str) -> PlatformAccount:
-    """Return PlatformAccount or raise ValueError."""
+def _resolve_account(db: Session, handle: str) -> CFUser:
+    """Return CFUser or raise ValueError."""
     account = (
-        db.query(PlatformAccount)
-        .filter(func.lower(PlatformAccount.handle) == handle.lower())
+        db.query(CFUser)
+        .filter(func.lower(CFUser.handle) == handle.lower())
         .first()
     )
     if not account:
@@ -180,7 +180,7 @@ def generate_contest_review(
     logger.info(f"AI contest review started: handle={handle}, contest_id={contest_id}")
 
     account = _resolve_account(db, handle)
-    user_id = account.user_id
+    user_id = account.id
 
     # Find the contest by Codeforces contest_code
     contest_code = str(contest_id)
@@ -339,7 +339,7 @@ def explain_rating_loss(db: Session, handle: str) -> RatingLossResponse:
     logger.info(f"AI rating loss explanation started: handle={handle}")
 
     account = _resolve_account(db, handle)
-    user_id = account.user_id
+    user_id = account.id
 
     # Gather analytics
     analytics = get_user_analytics(db, handle)
@@ -596,7 +596,7 @@ def analyze_bottlenecks(db: Session, handle: str) -> BottleneckAnalysis:
     logger.info(f"AI bottleneck analysis started: handle={handle}")
 
     account = _resolve_account(db, handle)
-    user_id = account.user_id
+    user_id = account.id
 
     # Gather all data
     analytics = get_user_analytics(db, handle)

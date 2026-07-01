@@ -6,7 +6,7 @@ from app.models.problem import Problem
 from app.models.problem_embedding import ProblemEmbedding
 from app.models.problem_cluster import ProblemCluster
 from app.models.problem_attempt import ProblemAttempt
-from app.models.platform_account import PlatformAccount
+from app.models.cf_user import CFUser
 from app.models.topic import Topic
 from app.models.problem_topic import ProblemTopic
 
@@ -153,12 +153,12 @@ def get_user_concept_mastery(db: Session, handle: str) -> List[Dict[str, Any]]:
     """
     Computes a user's mastery levels for each semantic concept cluster.
     """
-    account = db.query(PlatformAccount).filter(PlatformAccount.handle.ilike(handle)).first()
-    if not account:
+    user = db.query(CFUser).filter(CFUser.handle.ilike(handle)).first()
+    if not user:
         raise ValueError(f"No profile found for handle '{handle}'")
 
-    user_id = account.user_id
-    user_rating = account.current_rating or 1200
+    user_id = user.id
+    user_rating = user.current_rating or 1200
 
     # Get user problem attempts
     attempts = db.query(ProblemAttempt).filter(ProblemAttempt.user_id == user_id).all()

@@ -2,21 +2,14 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean
-from sqlalchemy import Integer
-from sqlalchemy import String
-from sqlalchemy import DateTime
-from sqlalchemy import ForeignKey
+from sqlalchemy import Boolean, Integer, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
-
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User
+    from app.models.cf_user import CFUser
     from app.models.contest_participation import ContestParticipation
     from app.models.problem import Problem
 
@@ -30,7 +23,7 @@ class ProblemAttempt(Base):
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id")
+        ForeignKey("cf_users.id")
     )
 
     participation_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -42,26 +35,17 @@ class ProblemAttempt(Base):
         ForeignKey("problems.id")
     )
 
-    solved: Mapped[bool] = mapped_column(
-        Boolean
-    )
+    solved: Mapped[bool] = mapped_column(Boolean)
 
-    attempts: Mapped[int] = mapped_column(
-        Integer,
-        default=1
-    )
+    attempts: Mapped[int] = mapped_column(Integer, default=1)
 
     time_to_solve: Mapped[int | None] = mapped_column()
 
     penalty: Mapped[int | None] = mapped_column()
 
-    verdict: Mapped[str | None] = mapped_column(
-        String(30)
-    )
+    verdict: Mapped[str | None] = mapped_column(String(30))
 
-    language: Mapped[str | None] = mapped_column(
-        String(30)
-    )
+    language: Mapped[str | None] = mapped_column(String(30))
 
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -69,6 +53,6 @@ class ProblemAttempt(Base):
     )
 
     # Relationships
-    user: Mapped["User"] = relationship(back_populates="attempts")
+    user: Mapped["CFUser"] = relationship(back_populates="attempts")
     participation: Mapped["ContestParticipation | None"] = relationship(back_populates="attempts")
     problem: Mapped["Problem"] = relationship(back_populates="attempts")

@@ -15,7 +15,7 @@ from typing import Optional
 from sqlalchemy import func, case
 from sqlalchemy.orm import Session
 
-from app.models.platform_account import PlatformAccount
+from app.models.cf_user import CFUser
 from app.models.problem_attempt import ProblemAttempt
 from app.models.problem import Problem
 from app.models.problem_topic import ProblemTopic
@@ -81,14 +81,14 @@ def _get_mastery_level(score: int) -> str:
 
 def _resolve_user_id(db: Session, handle: str):
     """Return user_id for the given CF handle, or raise ValueError."""
-    account = (
-        db.query(PlatformAccount)
-        .filter(func.lower(PlatformAccount.handle) == handle.lower())
+    user = (
+        db.query(CFUser)
+        .filter(func.lower(CFUser.handle) == handle.lower())
         .first()
     )
-    if not account:
+    if not user:
         raise ValueError(f"No profile found for handle '{handle}'")
-    return account.user_id
+    return user.id
 
 
 # ── Feature 1: Topic Analytics ─────────────────────────────────────────────────

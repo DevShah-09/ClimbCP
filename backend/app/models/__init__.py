@@ -1,5 +1,4 @@
-from app.models.user import User
-from app.models.platform_account import PlatformAccount
+from app.models.cf_user import CFUser
 from app.models.contest import Contest
 from app.models.problem import Problem
 from app.models.topic import Topic
@@ -14,8 +13,7 @@ from app.models.problem_cluster import ProblemCluster
 from app.models.user_embedding import UserEmbedding
 
 __all__ = [
-    "User",
-    "PlatformAccount",
+    "CFUser",
     "Contest",
     "Problem",
     "Topic",

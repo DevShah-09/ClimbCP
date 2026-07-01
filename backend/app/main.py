@@ -9,7 +9,6 @@ from app.routers import (
     sync_router,
     analytics_router,
     ratings_router,
-    auth_router,
     topics_router,
     weaknesses_router,
     strengths_router,
@@ -35,7 +34,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ClimbCP API",
     description="Backend API for ClimbCP platform",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -44,19 +43,16 @@ allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
 if allowed_origins_str:
     allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
 else:
-    # Default to local development ports
     allowed_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
     ]
 
-# If "*" is in allowed origins, Starlette requires allow_credentials to be False
 allow_credentials = True
 if "*" in allowed_origins:
     allow_credentials = False
 
-# Support wildcard ports for localhost/127.0.0.1 in development to prevent CORS blocks
 local_origin_regex = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
 
 app.add_middleware(
@@ -68,8 +64,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(auth_router)
+# Include routers — all public, no auth required
 app.include_router(sync_router, dependencies=[Depends(default_rate_limit)])
 app.include_router(analytics_router, dependencies=[Depends(default_rate_limit)])
 app.include_router(ratings_router, dependencies=[Depends(default_rate_limit)])
@@ -86,5 +81,4 @@ app.include_router(users_router, dependencies=[Depends(default_rate_limit)])
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to ClimbCP API"}
-
+    return {"message": "Welcome to ClimbCP API v2"}

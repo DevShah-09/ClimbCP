@@ -2,19 +2,14 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String
-from sqlalchemy import ForeignKey
-from sqlalchemy import DateTime
+from sqlalchemy import String, ForeignKey, DateTime
 from sqlalchemy.sql import func
-
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User
+    from app.models.cf_user import CFUser
     from app.models.topic import Topic
     from app.models.problem import Problem
 
@@ -28,7 +23,7 @@ class Recommendation(Base):
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id")
+        ForeignKey("cf_users.id")
     )
 
     topic_id: Mapped[uuid.UUID] = mapped_column(
@@ -42,14 +37,9 @@ class Recommendation(Base):
 
     priority: Mapped[int] = mapped_column()
 
-    reason: Mapped[str] = mapped_column(
-        String(500)
-    )
+    reason: Mapped[str] = mapped_column(String(500))
 
-    status: Mapped[str] = mapped_column(
-        String(30),
-        default="active"
-    )
+    status: Mapped[str] = mapped_column(String(30), default="active")
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -57,6 +47,6 @@ class Recommendation(Base):
     )
 
     # Relationships
-    user: Mapped["User"] = relationship(back_populates="recommendations")
+    user: Mapped["CFUser"] = relationship(back_populates="recommendations")
     topic: Mapped["Topic"] = relationship(back_populates="recommendations")
     problem: Mapped["Problem | None"] = relationship(back_populates="recommendations")
