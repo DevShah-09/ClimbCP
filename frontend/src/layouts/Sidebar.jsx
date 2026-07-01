@@ -8,7 +8,6 @@ const navItems = [
   { to: '/weaknesses',    icon: AlertTriangle,    label: 'Weakness Analysis' },
   { to: '/recommendations', icon: Lightbulb,      label: 'Recommendations' },
   { to: '/ai-coach',      icon: Sparkles,         label: 'AI Coach' },
-  { to: '/learning-map',  icon: Compass,          label: 'Learning Map' },
   { to: '/similar-users', icon: Users,            label: 'Similar Users' },
 ];
 

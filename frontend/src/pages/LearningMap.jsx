@@ -242,7 +242,7 @@ export default function LearningMap() {
         <h3 className="font-semibold text-white text-lg">Detailed Concept Breakdown</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {concepts.map((c, idx) => (
+          {[...concepts].sort((a, b) => a.mastery - b.mastery).map((c, idx) => (
             <div 
               key={c.cluster_id || idx}
               className={`glass-card p-5 border flex flex-col justify-between gap-4 transition-all hover:-translate-y-0.5 ${getMasteryColor(c.mastery)}`}

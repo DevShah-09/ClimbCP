@@ -4,6 +4,7 @@ import RecommendationCard from '../components/RecommendationCard';
 import { NotSearchedState, EmptyState } from '../components/UIStates';
 import { Lightbulb, Filter, RefreshCw, Loader2, Zap, ChevronRight, BrainCircuit, RotateCcw } from 'lucide-react';
 import { analyticsApi, recommendationsApiV2 } from '../services/api';
+import LearningMap from './LearningMap';
 
 const ALL = 'All';
 const MAX = 30;
@@ -185,7 +186,7 @@ export default function Recommendations() {
               : 'text-text-secondary hover:text-white'
           }`}
         >
-          General Recommendations (V1)
+          General Practice
         </button>
         <button
           onClick={() => setActiveTab('recovery')}
@@ -195,7 +196,17 @@ export default function Recommendations() {
               : 'text-text-secondary hover:text-white'
           }`}
         >
-          Advance Recommendations
+          Upsolve Engine
+        </button>
+        <button
+          onClick={() => setActiveTab('roadmap')}
+          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer ${
+            activeTab === 'roadmap'
+              ? 'text-accent border-b-2 border-accent'
+              : 'text-text-secondary hover:text-white'
+          }`}
+        >
+          Targeted Roadmap
         </button>
       </div>
 
@@ -363,6 +374,13 @@ export default function Recommendations() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB CONTENT: Targeted Roadmap */}
+      {activeTab === 'roadmap' && (
+        <div className="space-y-6 animate-fade-in -mt-4">
+          <LearningMap />
         </div>
       )}
     </div>

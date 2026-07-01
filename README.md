@@ -8,11 +8,11 @@ ClimbCP is a professional, advanced analytics and AI-powered training assistant 
 
 ##  Key Features
 
-### 1. Authentication & Onboarding
-*   **User Registration:** Secure user registration with live validation of Codeforces handles.
-*   **JWT-Based Auth & Session Persistence:** Tokens persist user sessions across page reloads.
+### 1. Onboarding & Session Management
+*   **Frictionless Login:** Codeforces handle-only authentication (no password required).
+*   **Live Validation:** Real-time validation of Codeforces handles against the official API.
+*   **Session Persistence:** LocalStorage-based session persistence for a seamless experience.
 *   **Initial Codeforces Sync:** Fetches user ratings, submissions, and contest history automatically upon registration.
-*   **Protected Routes:** Solid middleware-backed protection for all analytics and coaching APIs.
 
 ### 2. Rich Analytics & Topic Intelligence
 *   **Activity Statistics:** Track submissions, solve counts, and active coding streaks.
@@ -190,7 +190,7 @@ Below is the implementation status of ClimbCP's features:
 
 | Phase | Description | Key Deliverables | Status |
 | :--- | :--- | :--- | :---: |
-| **Phase 0** | **Auth & Onboarding** | Codeforces handle registration, JWT, session restore, initial sync | **✅ Complete** |
+| **Phase 0** | **Onboarding** | Frictionless Codeforces handle registration, session restore, initial sync | **✅ Complete** |
 | **Phase 1** | **Analytics Foundation** | Rating history, submissions tracker, contest stats APIs | **✅ Complete** |
 | **Phase 2** | **Topic Intelligence** | Topic mastery analysis, strengths & weaknesses engines | **✅ Complete** |
 | **Phase 3** | **Recommendations** | Personalized practice problems, practice set generator, roadmaps | **✅ Complete** |
