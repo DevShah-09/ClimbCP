@@ -236,3 +236,11 @@ npm --prefix frontend run build
 
 The tests use an isolated in-memory database and mocked Codeforces responses;
 they do not modify the configured application database.
+
+
+Concurrent synchronization is protected by PostgreSQL row locks and batched
+`ON CONFLICT DO NOTHING` inserts. Existing contest/problem IDs are reused.
+To run the additional concurrency regressions, set `PROFILE_TEST_POSTGRES_URL`
+to a disposable PostgreSQL database before running the test command above.
+These tests create and remove their own uniquely named schema; they are skipped
+when the test URL is absent. Never point this variable at the production database.

@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.database import get_db
@@ -9,6 +10,8 @@ from app.services.codeforces_service import (
     CodeforcesTimeoutException,
     CodeforcesException
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
@@ -44,8 +47,9 @@ def sync_codeforces(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(e)
         )
-    except Exception as e:
+    except Exception:
+        logger.exception("Profile synchronization failed for %s", handle)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database or system error occurred: {str(e)}"
+            detail="Profile synchronization failed. Please retry in a moment."
         )

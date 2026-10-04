@@ -193,6 +193,22 @@ def get_user_submissions(handle: str) -> List[Dict[str, Any]]:
     return data.get("result", [])
 
 
+def _insert_missing(db: Session, model, rows: List[Dict[str, Any]], key: str) -> None:
+    """Let the database arbitrate concurrent inserts, then callers reload real IDs."""
+    if db.get_bind().dialect.name == "postgresql":
+        from sqlalchemy.dialects.postgresql import insert
+    elif db.get_bind().dialect.name == "sqlite":
+        from sqlalchemy.dialects.sqlite import insert
+    else:
+        raise RuntimeError("Profile sync requires PostgreSQL or SQLite")
+    # A stable lock order avoids competing multi-row inserts taking locks in reverse order.
+    unique_rows = {row[key]: row for row in rows}
+    ordered = [unique_rows[value] for value in sorted(unique_rows)]
+    for offset in range(0, len(ordered), 100):
+        db.execute(insert(model.__table__).values(ordered[offset:offset + 100])
+                   .on_conflict_do_nothing(index_elements=[key]))
+
+
 def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
     """
     Synchronize Codeforces user details, rating history (contests), and submissions (attempts)
@@ -210,32 +226,41 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
         rating_history = get_user_rating_history(official_handle)
         submissions = get_user_submissions(official_handle)
 
-        # Step 3: Find or create CFUser record
+        # Serialize writes for the same user across workers and browser tabs.
+        # External API calls above never hold a database row lock.
         user = db.query(CFUser).filter(
-            func.lower(CFUser.handle) == handle.lower()
-        ).first()
+            func.lower(CFUser.handle) == official_handle.lower()
+        ).with_for_update().first()
+        if user is None:
+            _insert_missing(db, CFUser, [{
+                "id": uuid.uuid4(), "handle": official_handle,
+                "current_rating": cf_profile_info.get("rating"),
+                "max_rating": cf_profile_info.get("maxRating"),
+            }], "handle")
+            user = db.query(CFUser).filter(
+                func.lower(CFUser.handle) == official_handle.lower()
+            ).with_for_update().first()
+        user.handle = official_handle
+        user.current_rating = cf_profile_info.get("rating")
+        user.max_rating = cf_profile_info.get("maxRating")
 
-        if user:
-            # Update rating info on every sync
-            user.handle = official_handle
-            user.current_rating = cf_profile_info.get("rating")
-            user.max_rating = cf_profile_info.get("maxRating")
-        else:
-            user = CFUser(
-                handle=official_handle,
-                current_rating=cf_profile_info.get("rating"),
-                max_rating=cf_profile_info.get("maxRating"),
-                last_synced_at=None
-            )
-            db.add(user)
-            db.flush()  # populate user.id
-
-        # Load existing records once, rather than issuing queries inside each loop.
-        contest_codes = [str(r["contestId"]) for r in rating_history]
+        # Contests are shared by every user. A pre-insert SELECT alone cannot
+        # prevent another transaction creating the same contest in the meantime.
+        contest_rows = []
+        for change in rating_history:
+            rating_time = datetime.fromtimestamp(change["ratingUpdateTimeSeconds"])
+            contest_rows.append({
+                "id": uuid.uuid4(), "platform": "codeforces",
+                "contest_code": str(change["contestId"]),
+                "contest_name": change["contestName"],
+                "start_time": rating_time, "end_time": rating_time,
+            })
+        _insert_missing(db, Contest, contest_rows, "contest_code")
+        contest_codes = sorted({row["contest_code"] for row in contest_rows})
         contests = {}
         for offset in range(0, len(contest_codes), 500):
+            # Match the actual globally unique key, not an extra platform filter.
             contests.update({c.contest_code: c for c in db.query(Contest).filter(
-                Contest.platform == "codeforces",
                 Contest.contest_code.in_(contest_codes[offset:offset + 500]),
             ).all()})
         participations = {p.contest_id: p for p in db.query(ContestParticipation).filter(
@@ -247,21 +272,7 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
         for rating_change in rating_history:
             contest_code = str(rating_change["contestId"])
 
-            # Find or create Contest
-            contest = contests.get(contest_code)
-
-            if not contest:
-                rating_time = datetime.fromtimestamp(rating_change["ratingUpdateTimeSeconds"])
-                contest = Contest(
-                    id=uuid.uuid4(),
-                    platform="codeforces",
-                    contest_code=contest_code,
-                    contest_name=rating_change["contestName"],
-                    start_time=rating_time,
-                    end_time=rating_time
-                )
-                db.add(contest)
-                contests[contest_code] = contest
+            contest = contests[contest_code]
 
             # Find or create ContestParticipation
             participation = participations.get(contest.id)
@@ -307,15 +318,22 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
                 submissions_by_problem.setdefault(prob_code, []).append(s)
 
         submissions_synced = len(submissions)
-        problem_codes = list(submissions_by_problem)
+        problem_rows = []
+        for code, problem_submissions in submissions_by_problem.items():
+            info = problem_submissions[0]["problem"]
+            problem_rows.append({
+                "id": uuid.uuid4(), "platform": "codeforces", "problem_code": code,
+                "title": info.get("name", "Unknown"), "difficulty": info.get("rating"),
+            })
+        _insert_missing(db, Problem, problem_rows, "problem_code")
+        problem_codes = sorted(submissions_by_problem)
         problems = {}
         for offset in range(0, len(problem_codes), 500):
             problems.update({p.problem_code: p for p in db.query(Problem).options(
                 selectinload(Problem.topics)
             ).filter(
-                Problem.platform == "codeforces",
                 Problem.problem_code.in_(problem_codes[offset:offset + 500]),
-            ).all()})
+            ).order_by(Problem.problem_code).with_for_update().all()})
         attempts = {a.problem_id: a for a in db.query(ProblemAttempt).filter(
             ProblemAttempt.user_id == user.id
         ).all()}
@@ -330,36 +348,15 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
             difficulty = prob_info.get("rating")
             tags = prob_info.get("tags", [])
 
-            # Find or create Problem
-            problem = problems.get(prob_code)
-
-            if not problem:
-                problem = Problem(
-                    id=uuid.uuid4(),
-                    platform="codeforces",
-                    problem_code=prob_code,
-                    title=title,
-                    difficulty=difficulty
-                )
-
-                # Associate topics
-                for tag in tags:
-                    mapped_topic_name = TAG_TO_TOPIC_MAP.get(tag.lower())
-                    if mapped_topic_name:
-                        topic_obj = topic_name_map.get(mapped_topic_name.lower())
-                        if topic_obj:
-                            problem.topics.append(topic_obj)
-
-                db.add(problem)
-                problems[prob_code] = problem
-            else:
-                # Update difficulty/title if needed
-                if difficulty is not None:
-                    problem.difficulty = difficulty
-                problem.title = title
-                problem.topics = [topic_name_map[name.lower()] for tag in tags
-                                  if (name := TAG_TO_TOPIC_MAP.get(tag.lower()))
-                                  and name.lower() in topic_name_map]
+            # Reloaded IDs include rows inserted by another transaction. Row
+            # locks also protect shared topic associations while they are updated.
+            problem = problems[prob_code]
+            if difficulty is not None:
+                problem.difficulty = difficulty
+            problem.title = title
+            problem.topics = [topic_name_map[name.lower()] for name in sorted({
+                TAG_TO_TOPIC_MAP[tag.lower()] for tag in tags if tag.lower() in TAG_TO_TOPIC_MAP
+            }) if name.lower() in topic_name_map]
 
             # Sort submissions chronologically (ascending creationTimeSeconds)
             prob_submissions.sort(key=lambda x: x.get("creationTimeSeconds", 0))
