@@ -1,6 +1,6 @@
 from typing import List
 from datetime import datetime
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 
 from app.models.cf_user import CFUser
@@ -61,7 +61,7 @@ def get_user_analytics(db: Session, handle: str) -> UserAnalyticsResponse:
 def get_rating_history(db: Session, handle: str) -> List[RatingHistoryItem]:
     user = _get_cf_user(db, handle)
 
-    participations = db.query(ContestParticipation).join(Contest).filter(
+    participations = db.query(ContestParticipation).options(joinedload(ContestParticipation.contest)).join(Contest).filter(
         ContestParticipation.user_id == user.id,
         ContestParticipation.rating_change.isnot(None)
     ).order_by(Contest.start_time.asc()).all()

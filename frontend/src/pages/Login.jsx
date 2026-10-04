@@ -4,7 +4,7 @@ import { Trophy, Loader2, AlertCircle, Sparkles, ArrowRight, Zap } from 'lucide-
 
 export default function Login() {
   const { enterHandle, loading, syncing, error } = useAnalytics();
-  const [inputHandle, setInputHandle] = useState('');
+  const [inputHandle, setInputHandle] = useState(() => { try { return localStorage.getItem('climbcp.handle') || ''; } catch { return ''; } });
   const [localError, setLocalError] = useState(null);
 
   const isProcessing = loading || syncing;
@@ -141,7 +141,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs text-text-muted mt-5 tracking-wide">
-          ClimbCP syncs profile data, rating history, and all submissions in real-time.
+          Your handle is remembered on this device. Every visit refreshes the latest data available from Codeforces.
         </p>
       </div>
     </div>

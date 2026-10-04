@@ -4,13 +4,16 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 90000,
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      return Promise.reject(new Error('The server took too long to respond. It may be waking up; please retry in a moment.'));
+    }
     if (error.response) {
       const { status, data } = error.response;
       const message = data?.detail || `Request failed with status ${status}`;
@@ -23,7 +26,7 @@ api.interceptors.response.use(
 );
 
 export const syncApi = {
-  syncHandle: (handle) => api.post(`/sync/codeforces/${handle}`).then(r => r.data),
+  syncHandle: (handle) => api.post(`/sync/codeforces/${encodeURIComponent(handle)}`, null, { timeout: 60000 }).then(r => r.data),
 };
 
 export const analyticsApi = {
@@ -45,11 +48,11 @@ export const analyticsApi = {
 
 export const aiApi = {
   getContestReview: (handle, contestId) =>
-    api.post('/ai/contest-review', { handle, contest_id: contestId }).then(r => r.data),
+    api.post('/ai/contest-review', { handle, contest_id: contestId }, { timeout: 90000 }).then(r => r.data),
   getRatingLoss: (handle) =>
-    api.get(`/ai/rating-loss/${handle}`).then(r => r.data),
+    api.get(`/ai/rating-loss/${handle}`, { timeout: 90000 }).then(r => r.data),
   getBottlenecks: (handle) =>
-    api.get(`/ai/bottlenecks/${handle}`).then(r => r.data),
+    api.get(`/ai/bottlenecks/${handle}`, { timeout: 90000 }).then(r => r.data),
 };
 
 export const embeddingsApi = {

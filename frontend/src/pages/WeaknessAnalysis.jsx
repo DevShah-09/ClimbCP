@@ -6,7 +6,8 @@ import { ShieldAlert } from 'lucide-react';
 const priorityOrder = { High: 0, Medium: 1, Low: 2 };
 
 export default function WeaknessAnalysis() {
-  const { handle, weaknesses, loading, error } = useAnalytics();
+  const { handle, weaknesses, loading: profileLoading, detailsLoading, error } = useAnalytics();
+  const loading = profileLoading || detailsLoading;
 
   if (!handle && !loading) return <NotSearchedState />;
   if (loading) return <LoadingSpinner message="Analyzing weaknesses…" />;

@@ -4,7 +4,8 @@ import TopicTable from '../components/TopicTable';
 import { LoadingSpinner, ErrorState, NotSearchedState } from '../components/UIStates';
 
 export default function TopicAnalytics() {
-  const { handle, topicData, loading, error } = useAnalytics();
+  const { handle, topicData, loading: profileLoading, detailsLoading, error } = useAnalytics();
+  const loading = profileLoading || detailsLoading;
 
   if (!handle && !loading) return <NotSearchedState />;
   if (loading) return <LoadingSpinner message="Loading topic analytics…" />;

@@ -10,14 +10,14 @@ import Login from './pages/Login';
 import SimilarUsers from './pages/SimilarUsers';
 
 function AppContent() {
-  const { handle } = useAnalytics();
+  const { handle, lastSyncedAt } = useAnalytics();
 
   if (!handle) {
     return <Login />;
   }
 
   return (
-    <Routes>
+    <Routes key={`${handle}:${lastSyncedAt || ''}`}>
       <Route element={<MainLayout />}>
         <Route index element={<Dashboard />} />
         <Route path="/topics" element={<TopicAnalytics />} />

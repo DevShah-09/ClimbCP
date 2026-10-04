@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -82,6 +83,7 @@ def generate_user_embedding(db: Session, handle: str) -> List[float]:
     user_emb = db.query(UserEmbedding).filter(UserEmbedding.user_id == user_id).first()
     if user_emb:
         user_emb.embedding = embedding
+        user_emb.created_at = datetime.now(timezone.utc).replace(tzinfo=None)
     else:
         user_emb = UserEmbedding(
             user_id=user_id,
@@ -106,8 +108,10 @@ def find_similar_users(db: Session, handle: str, limit: int = 5) -> List[Dict[st
 
     # Get target user's embedding
     target_emb = db.query(UserEmbedding).filter(UserEmbedding.user_id == user_id).first()
-    if not target_emb:
-        # Generate on-the-fly
+    if not target_emb or (user.last_synced_at and (
+        target_emb.created_at.replace(tzinfo=None) < user.last_synced_at.replace(tzinfo=None)
+    )):
+        # Rebuild the profile vector after a new synchronization.
         target_vector = generate_user_embedding(db, handle)
     else:
         target_vector = target_emb.embedding

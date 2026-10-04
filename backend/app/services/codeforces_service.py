@@ -1,8 +1,9 @@
 import logging
+import uuid
 import requests
 from datetime import datetime, timezone
 from typing import Dict, Any, List
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func
 
 from app.models.cf_user import CFUser
@@ -205,6 +206,10 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
         official_handle = cf_profile_info.get("handle", handle)
         logger.info(f"User fetched from Codeforces: {official_handle}")
 
+        # Finish network requests before opening a database transaction.
+        rating_history = get_user_rating_history(official_handle)
+        submissions = get_user_submissions(official_handle)
+
         # Step 3: Find or create CFUser record
         user = db.query(CFUser).filter(
             func.lower(CFUser.handle) == handle.lower()
@@ -215,19 +220,27 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
             user.handle = official_handle
             user.current_rating = cf_profile_info.get("rating")
             user.max_rating = cf_profile_info.get("maxRating")
-            user.last_synced_at = datetime.now(timezone.utc)
         else:
             user = CFUser(
                 handle=official_handle,
                 current_rating=cf_profile_info.get("rating"),
                 max_rating=cf_profile_info.get("maxRating"),
-                last_synced_at=datetime.now(timezone.utc)
+                last_synced_at=None
             )
             db.add(user)
             db.flush()  # populate user.id
 
-        # Step 4: Fetch rating history
-        rating_history = get_user_rating_history(official_handle)
+        # Load existing records once, rather than issuing queries inside each loop.
+        contest_codes = [str(r["contestId"]) for r in rating_history]
+        contests = {}
+        for offset in range(0, len(contest_codes), 500):
+            contests.update({c.contest_code: c for c in db.query(Contest).filter(
+                Contest.platform == "codeforces",
+                Contest.contest_code.in_(contest_codes[offset:offset + 500]),
+            ).all()})
+        participations = {p.contest_id: p for p in db.query(ContestParticipation).filter(
+            ContestParticipation.user_id == user.id
+        ).all()}
 
         # Step 5: Store contest participations (avoid duplicate contests & participations)
         contests_synced = 0
@@ -235,14 +248,12 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
             contest_code = str(rating_change["contestId"])
 
             # Find or create Contest
-            contest = db.query(Contest).filter(
-                Contest.platform == "codeforces",
-                Contest.contest_code == contest_code
-            ).first()
+            contest = contests.get(contest_code)
 
             if not contest:
                 rating_time = datetime.fromtimestamp(rating_change["ratingUpdateTimeSeconds"])
                 contest = Contest(
+                    id=uuid.uuid4(),
                     platform="codeforces",
                     contest_code=contest_code,
                     contest_name=rating_change["contestName"],
@@ -250,17 +261,15 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
                     end_time=rating_time
                 )
                 db.add(contest)
-                db.flush()
+                contests[contest_code] = contest
 
             # Find or create ContestParticipation
-            participation = db.query(ContestParticipation).filter(
-                ContestParticipation.user_id == user.id,
-                ContestParticipation.contest_id == contest.id
-            ).first()
+            participation = participations.get(contest.id)
 
             rating_change_val = rating_change["newRating"] - rating_change["oldRating"]
             if not participation:
                 participation = ContestParticipation(
+                    id=uuid.uuid4(),
                     user_id=user.id,
                     contest_id=contest.id,
                     rank=rating_change["rank"],
@@ -271,6 +280,7 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
                     problems_solved=None
                 )
                 db.add(participation)
+                participations[contest.id] = participation
                 contests_synced += 1
             else:
                 # Update participation stats if they changed
@@ -281,9 +291,6 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
 
         db.flush()
         logger.info(f"Number of contests stored: {contests_synced}")
-
-        # Step 6: Fetch submissions
-        submissions = get_user_submissions(official_handle)
 
         # Step 7 & 8: Store submissions & Create problem records if they do not already exist
         all_topics = db.query(Topic).all()
@@ -300,6 +307,18 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
                 submissions_by_problem.setdefault(prob_code, []).append(s)
 
         submissions_synced = len(submissions)
+        problem_codes = list(submissions_by_problem)
+        problems = {}
+        for offset in range(0, len(problem_codes), 500):
+            problems.update({p.problem_code: p for p in db.query(Problem).options(
+                selectinload(Problem.topics)
+            ).filter(
+                Problem.platform == "codeforces",
+                Problem.problem_code.in_(problem_codes[offset:offset + 500]),
+            ).all()})
+        attempts = {a.problem_id: a for a in db.query(ProblemAttempt).filter(
+            ProblemAttempt.user_id == user.id
+        ).all()}
 
         for prob_code, prob_submissions in submissions_by_problem.items():
             # Get problem details from the first submission
@@ -312,13 +331,11 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
             tags = prob_info.get("tags", [])
 
             # Find or create Problem
-            problem = db.query(Problem).filter(
-                Problem.platform == "codeforces",
-                Problem.problem_code == prob_code
-            ).first()
+            problem = problems.get(prob_code)
 
             if not problem:
                 problem = Problem(
+                    id=uuid.uuid4(),
                     platform="codeforces",
                     problem_code=prob_code,
                     title=title,
@@ -334,12 +351,15 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
                             problem.topics.append(topic_obj)
 
                 db.add(problem)
-                db.flush()
+                problems[prob_code] = problem
             else:
                 # Update difficulty/title if needed
                 if difficulty is not None:
                     problem.difficulty = difficulty
                 problem.title = title
+                problem.topics = [topic_name_map[name.lower()] for tag in tags
+                                  if (name := TAG_TO_TOPIC_MAP.get(tag.lower()))
+                                  and name.lower() in topic_name_map]
 
             # Sort submissions chronologically (ascending creationTimeSeconds)
             prob_submissions.sort(key=lambda x: x.get("creationTimeSeconds", 0))
@@ -361,17 +381,10 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
             if during_contest:
                 # Find the ContestParticipation to link
                 contest_code_str = str(contest_id)
-                contest_obj = db.query(Contest).filter(
-                    Contest.platform == "codeforces",
-                    Contest.contest_code == contest_code_str
-                ).first()
-                if contest_obj:
-                    part_obj = db.query(ContestParticipation).filter(
-                        ContestParticipation.user_id == user.id,
-                        ContestParticipation.contest_id == contest_obj.id
-                    ).first()
-                    if part_obj:
-                        participation_id = part_obj.id
+                contest_obj = contests.get(contest_code_str)
+                part_obj = participations.get(contest_obj.id) if contest_obj else None
+                if part_obj:
+                    participation_id = part_obj.id
 
             solved = accepted_sub is not None
 
@@ -400,10 +413,7 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
                 language = last_sub.get("programmingLanguage")
 
             # Find or create ProblemAttempt
-            attempt = db.query(ProblemAttempt).filter(
-                ProblemAttempt.user_id == user.id,
-                ProblemAttempt.problem_id == problem.id
-            ).first()
+            attempt = attempts.get(problem.id)
 
             if not attempt:
                 attempt = ProblemAttempt(
@@ -420,7 +430,7 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
                 )
                 db.add(attempt)
             else:
-                attempt.participation_id = participation_id or attempt.participation_id
+                attempt.participation_id = participation_id
                 attempt.solved = solved
                 attempt.attempts = attempts_count
                 attempt.time_to_solve = time_to_solve
@@ -432,19 +442,20 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
         db.flush()
         logger.info(f"Number of submissions stored: {submissions_synced}")
 
-        # Update problems_solved count for all the user's contest participations
-        user_participations = db.query(ContestParticipation).filter(
-            ContestParticipation.user_id == user.id
-        ).all()
+        # One grouped query for every contest, including zero-solve contests.
+        solved_counts = dict(db.query(
+            ProblemAttempt.participation_id, func.count(ProblemAttempt.id)
+        ).filter(
+            ProblemAttempt.user_id == user.id,
+            ProblemAttempt.solved.is_(True),
+            ProblemAttempt.time_to_solve.isnot(None),
+        ).group_by(ProblemAttempt.participation_id).all())
+        for part in participations.values():
+            part.problems_solved = solved_counts.get(part.id, 0)
 
-        for part in user_participations:
-            solved_count = db.query(ProblemAttempt).filter(
-                ProblemAttempt.user_id == user.id,
-                ProblemAttempt.participation_id == part.id,
-                ProblemAttempt.solved == True
-            ).count()
-            part.problems_solved = solved_count
-
+        # Only mark a complete, successful synchronization as fresh.
+        user.last_synced_at = datetime.now(timezone.utc)
+        synced_at = user.last_synced_at
         db.commit()
         logger.info("Sync completed")
 
@@ -452,7 +463,8 @@ def sync_user_data(db: Session, handle: str) -> Dict[str, Any]:
             "handle": official_handle,
             "contests_synced": contests_synced,
             "submissions_synced": submissions_synced,
-            "status": "success"
+            "status": "success",
+            "last_synced_at": synced_at
         }
 
     except CodeforcesException as e:

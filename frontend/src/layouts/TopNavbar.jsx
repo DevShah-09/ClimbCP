@@ -2,7 +2,7 @@ import { User } from 'lucide-react';
 import { useAnalytics } from '../hooks/AnalyticsContext';
 
 export default function TopNavbar() {
-  const { handle, analytics } = useAnalytics();
+  const { handle, analytics, enterHandle, syncing, loading, detailsLoading, error, detailError, lastSyncedAt } = useAnalytics();
 
   const ratingColor = (r) => {
     if (!r) return 'text-text-muted';
@@ -16,6 +16,14 @@ export default function TopNavbar() {
 
   return (
     <header className="fixed top-0 right-0 left-56 h-16 border-b border-border bg-surface/90 backdrop-blur-md flex items-center px-6 gap-4 z-20">
+      <div className="ml-auto flex items-center gap-3 text-xs text-text-muted" role="status">
+        <span>{syncing || loading ? 'Updating from Codeforces...' : error ? 'Refresh failed' :
+          lastSyncedAt ? `Updated ${new Date(lastSyncedAt).toLocaleString()}` : ''}</span>
+        {detailsLoading && <span>Loading insights...</span>}
+        <button type="button" disabled={syncing || loading || detailsLoading}
+          onClick={() => enterHandle(handle)} className="text-accent disabled:opacity-50">Refresh</button>
+      </div>
+      {(error || detailError) && <p role="alert" className="text-xs text-red-400">{error || detailError}</p>}
       {/* User profile area */}
       {analytics && handle ? (
         <div className="flex items-center gap-3 glass-card px-3 py-1.5">

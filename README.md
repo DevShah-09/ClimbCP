@@ -205,3 +205,34 @@ Below is the implementation status of ClimbCP's features:
 ## Contributing
 
 Contributions are welcome! Please create an issue or pull request to suggest additions, optimizations, or feature expansions.
+
+
+### Profile refresh and loading
+
+The browser remembers only the selected Codeforces handle. On every return visit,
+ClimbCP automatically syncs profile details, full submission history (including
+rejudges), and rated contests before showing the dashboard. Logging out removes
+that remembered handle. The navbar shows the last successful update and a Refresh
+button. Failed refreshes show an error rather than presenting old data as current.
+
+Synchronization batches database lookups instead of querying for every problem
+and contest. Dashboard data loads first; topic insights load separately, and
+recommendations are fetched only on the recommendations page. AI reports and the
+current user's similarity vector are regenerated on demand after a profile sync.
+
+Deploy both the backend and frontend for these changes to take effect. Ensure
+VITE_API_BASE_URL points at the reachable backend and ALLOWED_ORIGINS includes the
+frontend origin. A sleeping or unavailable backend can still delay the first
+request; the frontend reports a timeout and allows a retry (60 seconds for sync,
+30 seconds for dashboard requests). AI requests retain a longer timeout.
+
+Backend regression checks (from the repository root in PowerShell):
+
+```powershell
+$env:PYTHONPATH = "backend"
+backend/venv/Scripts/python.exe -m unittest discover -s backend/tests -v
+npm --prefix frontend run build
+```
+
+The tests use an isolated in-memory database and mocked Codeforces responses;
+they do not modify the configured application database.

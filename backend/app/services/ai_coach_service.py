@@ -93,6 +93,9 @@ def _get_cached_report(db: Session, cache_key: str) -> Optional[AIReport]:
         .filter(
             AIReport.cache_key == cache_key,
             AIReport.created_at >= cutoff,
+            AIReport.created_at >= db.query(CFUser.last_synced_at).filter(
+                CFUser.id == AIReport.user_id
+            ).correlate(AIReport).scalar_subquery(),
         )
         .order_by(AIReport.created_at.desc())
         .first()
